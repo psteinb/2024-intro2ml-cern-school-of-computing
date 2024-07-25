@@ -20,18 +20,18 @@
 # %%
 import torch
 
-print("torch installed, ",torch.__version__)
+print("torch installed, ", torch.__version__)
 
 # %%
 import torchvision
 
-print("torchvision installed, ",torchvision.__version__)
+print("torchvision installed, ", torchvision.__version__)
 
 # %%
 
 import seaborn
 
-print("seaborn installed, ",seaborn.__version__)
+print("seaborn installed, ", seaborn.__version__)
 
 # %% [markdown]
 # If you were able to run the notebook until this point without any errors, you are
