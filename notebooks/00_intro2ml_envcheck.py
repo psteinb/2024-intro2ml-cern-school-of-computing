@@ -35,4 +35,6 @@ print("seaborn installed, ",seaborn.__version__)
 
 # %% [markdown]
 # If you were able to run the notebook until this point without any errors, you are
-# READY to GO!
+
+# %%
+print("READY to GO!")
