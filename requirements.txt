@@ -1,0 +1,12 @@
+#required for working with the notebooks
+jupytext
+ipykernel
+notebook
+
+#required to run the notebooks
+torch
+torchvision
+seaborn
+
+#nice to have for installing things
+uv
