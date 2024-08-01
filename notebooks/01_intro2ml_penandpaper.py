@@ -26,6 +26,9 @@
 # ## A simple MLP
 #
 # To start off, we want to construct a very simple MLP with one input unit, one hidden unit and one ouput unit. We will keep everything lightweight and one dimensional.
+#
+# ![](./img/01_1D_mlp.svg)
+#
 # $$ \text{Input}\,x \rightarrow \sigma (w \cdot x' + b) \rightarrow \text{Output}\,y' \rightarrow \mathcal{L}(y,y') $$
 #
 # In the above, the network receives an input datum $x$. This is used as input to the first hidden unit $\sigma (w \cdot x' + b)$. The hidden unit consists of 3 ingredients:
@@ -50,7 +53,7 @@
 # %% [markdown] jupyter={"source_hidden": true}
 # > ** Solution **
 # > 1. Compute $w \cdot x' + b$: We obtain `2`.
-# > 2. Apply the ReLU: We obtain `y'=2` again.
+# > 2. Apply the ReLU: We obtain `y'=2` again (2 is larger than 0 and hence $f_{ReLU}(x=2)=2$).
 # > 3. Compute the loss: $\mathcal{L}(y,y') = (y-y')^2 = (2 - 1.5)^2 = \frac{1}{4}$ 
 
 # %%
