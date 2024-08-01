@@ -27,7 +27,7 @@
 #
 # To start off, we want to construct a very simple MLP with one input unit, one hidden unit and one ouput unit. We will keep everything lightweight and one dimensional.
 #
-# ![](./img/01_1D_mlp.svg)
+# <div style="display: block;margin-left: auto;margin-right: auto;width: 75%;"><img src="img/01_1D_mlp.svg" alt="linear MLP"></div>
 #
 # $$ \text{Input}\,x \rightarrow \sigma (w \cdot x' + b) \rightarrow \text{Output}\,y' \rightarrow \mathcal{L}(y,y') $$
 #
@@ -41,6 +41,8 @@
 # %% [markdown]
 # **Exercise**
 #
+# <div style="display: block;margin-left: auto;margin-right: auto;width: 75%;"><img src="img/01_1D_mlp_filled.svg" alt="linear MLP with values"></div>
+#
 # Take pen and paper. Compute a full forward pass using the following values:
 #
 # - input $x = 2$
@@ -51,7 +53,7 @@
 # Use the [ReLU function](https://en.wikipedia.org/wiki/Rectifier_(neural_networks)) for $\sigma$ and the mean squared error ([MSE](https://en.wikipedia.org/wiki/Mean_squared_error)) for the loss function.
 
 # %% [markdown] jupyter={"source_hidden": true}
-# > ** Solution **
+# > **Solution**
 # > 1. Compute $w \cdot x' + b$: We obtain `2`.
 # > 2. Apply the ReLU: We obtain `y'=2` again (2 is larger than 0 and hence $f_{ReLU}(x=2)=2$).
 # > 3. Compute the loss: $\mathcal{L}(y,y') = (y-y')^2 = (2 - 1.5)^2 = \frac{1}{4}$ 
