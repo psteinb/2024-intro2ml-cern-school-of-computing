@@ -1,0 +1,128 @@
+\documentclass[border=10pt]{standalone}
+
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,arrows,decorations.pathmorphing,backgrounds,positioning,fit,petri,calc,shapes.geometric,scopes,fit,spy}
+
+\usepackage{pgfplots}
+\pgfplotsset{,compat=1.11}
+\tikzset{/pgf/number format/1000 sep={\,}}
+
+\usepackage{fontawesome5}
+\renewcommand{\familydefault}{\sfdefault}
+\usepackage{helvet}
+\usepackage{ifthen}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% varaibles
+\providecommand{\inText}[1]{
+ $x_{#1}$
+}
+\providecommand{\hidlText}[1]{
+ {$H_{#1} = \sum_{j} W^{I}_{j#1} \cdot x_{j} + b^{I}_{#1}$}%
+}
+\providecommand{\hidrText}[1]{
+ {$h_{#1}=\sigma_{relu}(H_{#1})$}%
+}
+\providecommand{\outlText}[1]{
+ {$y'_{#1} = \sum_{j} W^{II}_{j#1} \cdot h_{j} + b^{II}_{#1}$}%
+}
+
+\providecommand{\outrText}[1]{
+ $\hat{y}_{#1}=\sigma(y'_{#1})$%
+}
+\providecommand{\synapseIHText}[2]{%
+ {\ifthenelse{\equal{#2}{0}}{\small$W^{(I)}_{#1#2}$}{\dots}}}
+\providecommand{\synapseHOText}[2]{%
+  % \small$W^{(H)}_{#1#2}$
+  {\ifthenelse{\equal{#2}{0}}{\small$W^{(II)}_{#1#2}$}{\dots}}%
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%main document
+\begin{document}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% preamble
+%\providecommand{\hidText}[1]{$H_{#1}$}%
+\makeatletter
+\newcommand{\tikzANN@InputLayerTitle}{Input\\Layer\\[4pt]$\vec{x}$}%
+\newcommand{\tikzANN@HiddenLayerTitle}{Hidden\\Layer\\[4pt]$\vec{h} = \sigma_{relu}(\mathbf{W}\cdot\vec{x} + \vec{b})$}%
+\newcommand{\tikzANN@OutputLayerTitle}{Output\\Layer\\[4pt]$\vec{\hat{y}}$}%
+\providecommand{\tikzANNInputLayerTitle} {\tikzANN@InputLayerTitle}%
+\providecommand{\tikzANNHiddenLayerTitle}{\tikzANN@HiddenLayerTitle}%
+\providecommand{\tikzANNOutputLayerTitle}{\tikzANN@OutputLayerTitle}%
+\makeatother
+
+\newcommand{\tikzANNResetTitleCommands}{%
+\makeatletter
+\renewcommand{\tikzANNInputLayerTitle} {\tikzANN@InputLayerTitle}%
+\renewcommand{\tikzANNHiddenLayerTitle}{\tikzANN@HiddenLayerTitle}%
+\renewcommand{\tikzANNOutputLayerTitle}{\tikzANN@OutputLayerTitle}%
+\makeatother
+}
+\tikzset{synapseNode/.style={}}
+\begin{tikzpicture} [
+  neuron/.style={rectangle,minimum size=2.5em,align=center},
+  inout/.style={circle,minimum size=4em,align=center},
+  inNeuron/.style={inout,draw=blue,fill=blue!20},
+  hiddenNeuron/.style={neuron,draw=green,fill=green!20},
+  outNeuron/.style={inout,draw=red,fill=red!20},
+  synapseNodeMy/.style={near start,sloped,above,
+     outer sep=0ex,inner sep=.2ex, synapseNode},
+  every node/.append style={node distance=2em,inner sep=0pt}
+ ]
+  \node[inNeuron] (in 0) {\inText{0}};
+  \node[inNeuron, below=of in 0] (in 1) {\inText{1}};
+  \node[inNeuron, below=of in 1] (in 2) {\inText{2}};
+
+  \node[hiddenNeuron, right=6em of in 0] (hid 0) {\hidlText{0}}; 
+  \node[hiddenNeuron, right=6em of in 1] (hid 1) {\hidlText{1}}; 
+  \node[hiddenNeuron, right=6em of in 2] (hid 2) {\hidlText{2}}; 
+
+  \node[hiddenNeuron, right=18em of in 0,anchor=west] (rel 0) {\hidrText{0}}; 
+  \node[hiddenNeuron, right=18em of in 1,anchor=west] (rel 1) {\hidrText{1}}; 
+  \node[hiddenNeuron, right=18em of in 2,anchor=west] (rel 2) {\hidrText{2}}; 
+  
+  \node[inner sep=0em,outer sep=0em, fit=(rel 0) (rel 1)] (relG 01) {};
+  \node[inner sep=0em,outer sep=0em, fit=(rel 2) (rel 1)] (relG 12) {};
+
+  \node[hiddenNeuron, right=6em of relG 01] (outl 0) {\outlText{0}}; 
+  \node[hiddenNeuron, right=6em of relG 12] (outl 1) {\outlText{1}};
+
+  \node[outNeuron, right=2em of outl 0] (out 0) {\outrText{0}}; 
+  \node[outNeuron, right=2em of outl 1] (out 1) {\outrText{1}}; 
+
+  \foreach \a in {0,...,2} {
+    \draw (hid \a) -- (rel \a);
+  }
+
+  \foreach \a in {0,...,1} {
+    \draw (outl \a) -- (out \a);
+  }
+  
+  \foreach \a in {0,...,2} {
+   \foreach \s in {0,...,2} {
+    \draw (in \a) -- (hid \s) node[synapseNodeMy] {\synapseIHText{\a}{\s}
+    };
+   }}
+
+  \foreach \a in {0,...,2} {
+   \foreach \s in {0,...,1} {
+    \draw (rel \a) -- (outl \s) node[synapseNodeMy] {\synapseHOText{\a}{\s}
+    };
+   }}
+
+
+ 
+ \node[above=1.5em of in 0,align=center] {\tikzANNInputLayerTitle};
+
+ \node[inner sep=0em,outer sep=0em, fit=(hid 0) (rel 0)] (midH) {};
+ \node[above=1.5em of midH,align=center] (hidTitle) {\tikzANNHiddenLayerTitle};
+
+ \node[inner sep=0em,outer sep=0em, fit=(outl 0) (out 0)] (midO) {};
+  \node[anchor=center,align=center] at (midO |- hidTitle) {\tikzANNOutputLayerTitle};
+
+\end{tikzpicture}
+
+\end{document}
