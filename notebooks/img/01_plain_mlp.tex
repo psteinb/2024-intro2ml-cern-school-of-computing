@@ -2,6 +2,7 @@
 
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,arrows,decorations.pathmorphing,backgrounds,positioning,fit,petri,calc,shapes.geometric,scopes,fit,spy}
+
 \usepackage{pgfplots}
 \pgfplotsset{,compat=1.11}
 \tikzset{/pgf/number format/1000 sep={\,}}
@@ -9,14 +10,35 @@
 \usepackage{fontawesome5}
 \renewcommand{\familydefault}{\sfdefault}
 \usepackage{helvet}
+\usepackage{ifthen}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% varaibles
+\providecommand{\inText}[1]{
+ $x_{#1}$
+}
+\providecommand{\hidText}[1]{
+ {$h_{#1}$}%
+}
+\providecommand{\outText}[1]{
+ $\hat{y}_{#1}$%
+}
+\providecommand{\synapseIHText}[2]{%
+ {\ifthenelse{\equal{#1}{1}}{}{\small$W^{(I)}_{#1#2}$}}}
+\providecommand{\synapseHOText}[2]{\small$W^{(H)}_{#1#2}$}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%main document
+\begin{document}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % preamble
-\providecommand{\hidText}[1]{$H_{#1}$}%
+%\providecommand{\hidText}[1]{$H_{#1}$}%
 \makeatletter
-\newcommand{\tikzANN@InputLayerTitle}{Input\\Layer}%
-\newcommand{\tikzANN@HiddenLayerTitle}{Hidden\\Layer}%
-\newcommand{\tikzANN@OutputLayerTitle}{Output\\Layer}%
+\newcommand{\tikzANN@InputLayerTitle}{Input\\Layer\\[4pt]$\vec{x}$}%
+\newcommand{\tikzANN@HiddenLayerTitle}{Hidden\\Layer\\[4pt]$\vec{h}$}%
+\newcommand{\tikzANN@OutputLayerTitle}{Output\\Layer\\[4pt]$\vec{\hat{y}}$}%
 \providecommand{\tikzANNInputLayerTitle} {\tikzANN@InputLayerTitle}%
 \providecommand{\tikzANNHiddenLayerTitle}{\tikzANN@HiddenLayerTitle}%
 \providecommand{\tikzANNOutputLayerTitle}{\tikzANN@OutputLayerTitle}%
@@ -30,26 +52,6 @@
 \makeatother
 }
 \tikzset{synapseNode/.style={}}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% varaibles
-\renewcommand{\inText}[1]{
- $x_{#1}$
-}
-\renewcommand{\hidText}[1]{
- {$\sigma_{relu}(H_{#1})$}%
-}
-\renewcommand{\outText}[1]{
- $y_{#1}$%
-}
-\renewcommand{\synapseIHText}[2]{%
- {\ifthenelse{\equal{#1}{1}}{}{\small$W^{(I)}_{#1#2}$}}}
-\renewcommand{\synapseHOText}[2]{\small$W^{(H)}_{#1#2}$}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%main document
-\begin{document}
-
 \begin{tikzpicture} [
   neuron/.style={circle,minimum size=4em,align=center},
   inNeuron/.style={neuron,draw=blue,fill=blue!20},
@@ -75,18 +77,19 @@
 
   \foreach \a in {0,...,2} {
    \foreach \s in {0,...,2} {
-    \draw (in \a) -- (hid \s) node[synapseNodeMy] {\synapseIHText{\a}{\s}};
+    \draw (in \a) -- (hid \s) node[synapseNodeMy] {% \synapseIHText{\a}{\s}
+    };
    }}
 
   \foreach \a in {0,...,2} {
    \foreach \s in {0,...,1} {
-    \draw (hid \a) -- (out \s) node[synapseNodeMy] {\synapseHOText{\a}{\s}};
+    \draw (hid \a) -- (out \s) node[synapseNodeMy] {% \synapseHOText{\a}{\s}
+    };
    }}
 
   \node[above=1.5em of in 0,align=center] {\tikzANNInputLayerTitle};
   \node[above=1.5em of hid 0,align=center] (hidTitle) {\tikzANNHiddenLayerTitle};
   \node[anchor=center,align=center] at (out 0 |- hidTitle) {\tikzANNOutputLayerTitle};
-
 
 \end{tikzpicture}
 
