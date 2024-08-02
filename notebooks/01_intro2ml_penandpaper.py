@@ -184,8 +184,8 @@
 # %%
 import torch
 
-x = torch.Tensor([1., 2.,])
-y = torch.Tensor([1., 5.,])
+x = torch.Tensor([[2.]])
+y = torch.Tensor([[5.]])
 
 # %% [markdown]
 # The central building block of `pytorch` is a `torch.Tensor` object. The API of `Tensor` is very similar to that of a `numpy.ndarray`. That makes it easier to switch between libraries.
@@ -203,14 +203,16 @@ y = torch.Tensor([1., 5.,])
 class f_prime_model(torch.nn.Module):
 
     def __init__(self):
+        super().__init__()
         #for more complicated models, this constructor will be rather complicated
+        self.hidden0 = torch.nn.Linear(in_features=1, out_features=1)
         self.hidden1 = torch.nn.Linear(in_features=1, out_features=1)
-        self.hidden2 = torch.nn.Linear(in_features=1, out_features=1)
+
 
     def forward(self, x):
         """ forward pass of our model, using x as the input data """
-        h = self.hidden1(x)
-        y_hat = self.hidden2(h)
+        h = self.hidden0(x)
+        y_hat = self.hidden1(h)
 
         return y_hat
 
