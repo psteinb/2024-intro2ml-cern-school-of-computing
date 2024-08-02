@@ -17,14 +17,14 @@
   \node[dashed,draw, rectangle, text width=1.25cm, align=right] (fixed) [left of=input, node distance=2cm] {$x=2$ $w=.5$ $b=1$};
    
    
-   \node[ultra thick, draw, ellipse] (hidden) [right of=input] {$F(w \cdot x + b)$};
-   \node[ultra thick, draw, circle] (output) [right of=hidden] {Output $o$};
+   \node[ultra thick, draw, ellipse] (hidden) [right of=input] {$\sigma(w \cdot x + b)$};
+   \node[ultra thick, draw, circle] (output) [right of=hidden] {Output $\hat{y}$};
    \node[ultra thick, draw, rectangle, minimum width=2.5cm] (loss) [right of=output] {$\mathcal{L}(y, \hat{y})$};
 
    \path[->] (input) edge node {w} (hidden)
    (hidden) edge (output)
-   (output) edge node {$\hat{y}$} (loss);
-   \node[below=.5em of loss] {$= \frac{1}{N}(y-\hat{y})^2$};
+   (output) edge (loss);
+   \node[below=.5em of loss] {$= (y-\hat{y})^2$};
    \node (ytrue) [right of=loss, node distance=2cm] {$y = 1.5$};
    \path[->] (ytrue) edge (loss);
    

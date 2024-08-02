@@ -68,7 +68,7 @@
   inNeuron/.style={inout,draw=blue,fill=blue!20},
   hiddenNeuron/.style={neuron,draw=green,fill=green!20},
   outNeuron/.style={inout,draw=red,fill=red!20},
-  synapseNodeMy/.style={near start,sloped,above,
+  synapseNodeMy/.style={midway,sloped,above,
      outer sep=0ex,inner sep=.2ex, synapseNode},
   every node/.append style={node distance=2em,inner sep=0pt}
  ]
@@ -87,8 +87,8 @@
   \node[inner sep=0em,outer sep=0em, fit=(rel 0) (rel 1)] (relG 01) {};
   \node[inner sep=0em,outer sep=0em, fit=(rel 2) (rel 1)] (relG 12) {};
 
-  \node[hiddenNeuron, right=6em of relG 01] (outl 0) {\outlText{0}}; 
-  \node[hiddenNeuron, right=6em of relG 12] (outl 1) {\outlText{1}};
+  \node[hiddenNeuron, right=5em of relG 01] (outl 0) {\outlText{0}}; 
+  \node[hiddenNeuron, right=5em of relG 12] (outl 1) {\outlText{1}};
 
   \node[outNeuron, right=2em of outl 0] (out 0) {\outrText{0}}; 
   \node[outNeuron, right=2em of outl 1] (out 1) {\outrText{1}}; 
