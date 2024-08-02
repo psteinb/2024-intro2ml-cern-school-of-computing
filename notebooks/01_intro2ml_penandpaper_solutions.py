@@ -41,12 +41,16 @@ class f_prime_model(torch.nn.Module):
         super().__init__()
         #for more complicated models, this constructor will be rather complicated
         self.hidden0 = torch.nn.Linear(in_features=1, out_features=1)
+        self.relu0 = torch.nn.ReLU()
         self.hidden1 = torch.nn.Linear(in_features=1, out_features=1)
+        self.relu1 = torch.nn.ReLU()
 
     def forward(self, x):
         """ forward pass of our model, using x as the input data """
         h = self.hidden0(x)
-        y_hat = self.hidden1(h)
+        h_ = self.relu0(h)
+        y_hat_ = self.hidden1(h_)
+        y_hat = self.relu1(y_hat_)
 
         return y_hat
 
