@@ -70,7 +70,7 @@ def one_iteration(model,x,y,h0w=4.,h0b=2.,h1w=4.,h1b=2., verbose=False):
             print(name, value.item())
 
     loss_fn = torch.nn.MSELoss()
-    opt = torch.optim.SGD(model.parameters())
+    opt = torch.optim.SGD(model.parameters(), lr=0.01)
     y_hat = model(x)
     loss = loss_fn(y_hat, y) #loss function computed (computational graph is internally established)
     loss.backward() #backpropagate through loss function

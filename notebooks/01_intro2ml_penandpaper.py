@@ -249,7 +249,7 @@ loss_fn = torch.nn.MSELoss()
 
 # %%
 # Next, we want to set up the optimizer to perform one learning step. The constructor requires to provide the model parameters. This is the "bridge" to connect model with optimizer for the later optimization routine.
-opt = torch.optim.SGD(model.parameters())
+opt = torch.optim.SGD(model.parameters(),lr=0.01)
 
 # %%
 # finally we perform one feedforward pass and one backward pass
