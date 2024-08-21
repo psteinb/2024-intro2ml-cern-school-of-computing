@@ -88,6 +88,7 @@ f.savefig("mnist1d_default_first10.svg")
 # %%
 from typing import Callable
 
+import numpy as np
 import torch
 from sklearn.model_selection import train_test_split
 
@@ -123,10 +124,10 @@ class MNIST1D(torch.utils.data.Dataset):
 
     def __getitem__(self, index: int):
 
-        X = self.X[index:index+1, ...]
+        X = self.X[index:index+1, ...].astype(np.float32)
         if self.transform is not None:
             X = self.transform(X)
-        y = self.y[index:index+1, ...]
+        y = self.y[index:index+1, ...].astype(np.int64)
         if self.target_transform is not None:
             y = self.target_transform(y)
         return X, y
@@ -139,8 +140,8 @@ class MNIST1D(torch.utils.data.Dataset):
 # For more details, see the `pytorch` documentation on [Creating a Custom Dataset for your files](https://pytorch.org/tutorials/beginner/basics/data_tutorial.html#creating-a-custom-dataset-for-your-files) or [Datasets & DataLoaders](https://pytorch.org/tutorials/beginner/basics/data_tutorial.html).
 
 # %%
-training_data = MNIST1D()
-test_data = MNIST1D(train=False)
+training_data = MNIST1D(transform=torch.from_numpy, target_transform=torch.LongTensor)
+test_data = MNIST1D(train=False, transform=torch.from_numpy, target_transform=torch.LongTensor)
 
 nsamples = len(training_data)+len(test_data)
 assert nsamples == 4000, f"number of samples for MNIST1D is not 4000 but {nsamples}"
@@ -202,20 +203,102 @@ class MyCNN(torch.nn.Module):
         super().__init__()
         self.layers = torch.nn.Sequential()
 
-        self.layers.append(torch.nn.Conv1d(in_channels=1,out_channels=nchannels,kernel_size=5,padding=2, stride=2))
+        self.layers.append(torch.nn.Conv1d(in_channels=1, out_channels=nchannels,
+                                           kernel_size=5, padding=2, stride=2))
         self.layers.append(torch.nn.ReLU())
 
-        self.layers.append(torch.nn.Conv1d(in_channels=nchannels,out_channels=nchannels,kernel_size=3,padding=1))
+        self.layers.append(torch.nn.Conv1d(in_channels=nchannels, out_channels=nchannels,
+                                           kernel_size=3, padding=1))
         self.layers.append(torch.nn.ReLU())
 
-        self.layers.append(torch.nn.Conv1d(in_channels=nchannels,out_channels=nchannels,kernel_size=5,padding=2, stride=2))
+        self.layers.append(torch.nn.Conv1d(in_channels=nchannels, out_channels=nchannels,
+                                           kernel_size=5, padding=2, stride=2))
         self.layers.append(torch.nn.ReLU())
 
+        self.layers.append(torch.nn.Conv1d(in_channels=nchannels, out_channels=nchannels,
+                                           kernel_size=5, padding=2, stride=2))
+        self.layers.append(torch.nn.ReLU())
+        # collapse channels
+        self.layers.append(torch.nn.Conv1d(in_channels=nchannels, out_channels=1,
+                                           kernel_size=5, padding=2, stride=2))
+        self.layers.append(torch.nn.Flatten())
+        self.layers.append(torch.nn.Softmax()) # to produce logits
 
     def forward(self, x):
 
         return self.layers(x)
 
-model = MyCNN()
-output = model(train_X.float())
-output.shape
+# %% [markdown]
+# Again, the model definition has to comply to some rules:
+# - the model has to inherit from `torch.nn.Module`
+# - the model has to implement `__init__`
+# - the model has to implement a `forward` function
+# We can check that we have implemented the model "correctly", but just passing in some data. All weights are initialized randomly by default.
+
+# %%
+model = MyCNN() # construct the model
+output = model(train_X) # perform a forward pass (note the __call__ method is automatically using the forward function)
+print(output.shape)
+
+# %% [markdown]
+# ## Classification with a CNN
+#
+# CNNs have become extremely popular to use for classification tasks. A classification tries to categorize or classify a given input signal to a fixed number of possible outcomes. In our case, these outcomes are the class labels of MNIST1D. For this reason, we can call our model a classifyer now. To set up training, we have to set an optimizer. We use `AdamW` with default options for the time being. Note, to construct the optimizer, we have to provide all parameters of our model in the constructor.
+
+# %%
+optimizer = torch.optim.AdamW(model.parameters())
+
+# %% [markdown]
+# As a next step, we have to consider the loss function. To do so, we will use the CrossEntropyLoss.
+
+# %%
+criterion = torch.nn.CrossEntropyLoss() # our loss function
+
+# %% [markdown]
+# We are now ready to code up our training loop.
+
+# %%
+from sklearn.metrics import accuracy_score as accuracy
+
+max_epochs = 30
+log_every = 2
+results = {'train_losses':[], 'test_losses': [],'train_acc': [], 'test_acc':[]}
+
+# containers for results per epoch
+ntrainsteps = len(train_dataloader)
+train_acc, train_loss = torch.zeros((ntrainsteps,)), torch.zeros((ntrainsteps,))
+nteststeps = len(test_dataloader)
+test_acc, test_loss = torch.zeros((nteststeps,)), torch.zeros((nteststeps,))
+
+for epoch in range(max_epochs):
+    # perform training
+
+    for idx, (X, y) in enumerate(train_dataloader):
+
+        y_hat = model(X)
+        loss = criterion(y, y_hat)
+
+        loss.backward()
+        optimizer.step()
+        optimizer.zero_grad()
+
+        acc = accuracy(y.cpu().float().numpy(),
+                       y_hat.argmax(-1).cpu().numpy())
+        train_loss[idx] = loss.item()
+        train_acc[idx] = acc
+
+    for idx, (X_test, y_test) in enumerate(test_dataloader):
+        y_hat_test = model(X_test)
+        loss_ = criterion(y_hat_test, y_test)
+        test_acc = accuracy(y_test.cpu().float().numpy(),
+                            y_hat_test.argmax(-1).cpu().numpy())
+        test_loss[idx] = loss_.item()
+        test_acc[idx] = test_acc
+
+    results['train_losses'].append(train_loss.mean())
+    results['train_acc'].append(train_acc.mean())
+    results['test_losses'].append(test_loss.mean())
+    results['test_acc'].append(test_acc.mean())
+
+    if epoch % log_every == 0:
+        print(f"{epoch+1}/{max_epochs} :: training loss {train_loss.mean()} accuracy {train_acc.mean()}; test loss {test_loss.mean()} accuracy {test_acc.mean()}")
