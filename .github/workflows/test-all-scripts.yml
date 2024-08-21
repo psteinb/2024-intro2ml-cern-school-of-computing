@@ -23,9 +23,8 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install uv
-          uv pip install --extra-index-url https://download.pytorch.org/whl/cpu torch torchvision
-          uv pip install -r requirements.txt
+          python -m pip install --extra-index-url https://download.pytorch.org/whl/cpu torch torchvision
+          python -m pip install -r requirements.txt
       - name: Run all scripts in notebooks
         run: |
           for pyfile in notebooks/*py;do python ${pyfile};done
