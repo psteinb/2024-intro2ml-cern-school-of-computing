@@ -123,10 +123,10 @@ class MNIST1D(torch.utils.data.Dataset):
 
     def __getitem__(self, index: int):
 
-        X = self.X[index, ...]
+        X = self.X[index:index+1, ...]
         if self.transform is not None:
             X = self.transform(X)
-        y = self.y[index, ...]
+        y = self.y[index:index+1, ...]
         if self.target_transform is not None:
             y = self.target_transform(y)
         return X, y
@@ -162,7 +162,60 @@ print("obtained first batch of training data and labels with shapes",train_X.sha
 #
 # Up until here, we have made great strides to load our dataset. We now want to explore what convolutions are and how to use them to construct a convolutional neural network (CNN).
 #
-# A convolution is a mathematical operation. Here, we only consider convolutions on a discrete signal $x \in \mathbb{R}^{n}$ using a convolution kernel $w \in \mathbb{R}^{m}$ where $m << n$ usually. For a fixed offset $i$ in the output signal $y$, a convolution $y = x \ast w$ is defined by:
+# A convolution is a mathematical operation. Here, we only consider convolutions on a discrete signal $x \in \mathbb{R}^{n}$ using a convolution kernel $w \in \mathbb{R}^{m}$ where $m << n$ usually. For a fixed offset $i$ in the output signal $y$, a convolution $\vec{y} = \vec{x} \ast \vec{w}$ is defined by:
 # $$ y_{i} = \sum_{k=0}^{k-1} x_{i+m-k} \cdot w_{k} $$
 #
-# ###
+# ### Illustrated convolutions
+#
+# For the convolution, the kernel $\vec{w}$ is moved across the input signal $\vec{x}$.
+#
+# <div style="display: block;margin-left: auto;margin-right: auto;width: 75%;"><img src="img/02_1D_convolution_1o3.svg" alt="convolution 1/3"></div>
+#
+# Note how the input signal had to be padded with `0` values so that the kernel could act upon the leftmost value (`1` here) and the rightmost value (`7` here). The above operation creates the first entry in the output $\vec{y}$. Next, the kernel is moved one step further (the step size is called the `stride`).
+#
+# <div style="display: block;margin-left: auto;margin-right: auto;width: 75%;"><img src="img/02_1D_convolution_2o3.svg" alt="convolution 2/3"></div>
+#
+# With the operation above, we have now created the second entry in $\vec{y}$. This operation is now repeated until the entire input sequence has operated upon.
+#
+# <div style="display: block;margin-left: auto;margin-right: auto;width: 75%;"><img src="img/02_1D_convolution_3o3.svg" alt="convolution 3/3"></div>
+#
+# Once the convolution has finished, we would expect something like the signal below:
+#
+# <div style="display: block;margin-left: auto;margin-right: auto;width: 75%;"><img src="img/02_1D_convolution_done.svg" alt="convolution done"></div>
+#
+# Key parameters of the convolution operation are:
+# - kernel size, i.e. the length of the kernel $\vec{w}$
+# - the padding strategy, i.e. whether to pad with 0s or mirror the content or something else
+# - the padding width, i.e. how many entries to add to the signal left and right
+# - the stride, i.e. by which step size to move the kernel along the signal
+# There are more important paramters to define a convolution, but they are not relevant for our tutorial. For more details, see the definition of the [Conv1d](https://pytorch.org/docs/stable/generated/torch.nn.Conv1d.html#torch.nn.Conv1d) operation in `pytorch`.
+#
+# ## A Convolutional Neural Network
+#
+# We will now construct a model in Pytorch. The setup has to comply to some rules. But let's dive in first.
+
+# %%
+class MyCNN(torch.nn.Module):
+
+    def __init__(self, nlayers: int = 3, nchannels=16):
+
+        super().__init__()
+        self.layers = torch.nn.Sequential()
+
+        self.layers.append(torch.nn.Conv1d(in_channels=1,out_channels=nchannels,kernel_size=5,padding=2, stride=2))
+        self.layers.append(torch.nn.ReLU())
+
+        self.layers.append(torch.nn.Conv1d(in_channels=nchannels,out_channels=nchannels,kernel_size=3,padding=1))
+        self.layers.append(torch.nn.ReLU())
+
+        self.layers.append(torch.nn.Conv1d(in_channels=nchannels,out_channels=nchannels,kernel_size=5,padding=2, stride=2))
+        self.layers.append(torch.nn.ReLU())
+
+
+    def forward(self, x):
+
+        return self.layers(x)
+
+model = MyCNN()
+output = model(train_X.float())
+output.shape
