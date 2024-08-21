@@ -1,5 +1,5 @@
 # content taken from https://blog.ouseful.info/2021/11/10/simple-jupytext-github-action-to-update-jupyter-ipynb-notebooks-from-markdown/
-name: jupytext-create-notebooks
+name: convert-jupyter-notebooks
  
 on:
   push
