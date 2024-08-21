@@ -3,6 +3,7 @@ NOTEBOOKS_PLAIN=$(JUPYTEXT_FILES:%.py=%.ipynb)
 NOTEBOOKS_HTML =$(JUPYTEXT_FILES:%.py=%.html)
 
 PDFCMD?=latexmk -xelatex -synctex=1 -interaction=nonstopmode
+JPYOPTS?=--execute
 
 all: $(NOTEBOOKS_PLAIN) $(NOTEBOOKS_HTML)
 
@@ -10,7 +11,7 @@ all: $(NOTEBOOKS_PLAIN) $(NOTEBOOKS_HTML)
 #      need to install texlive-dvisvgm in order to try: latex <filestem> && dvisvgm <filestem>
 
 %.ipynb : %.py
-	@jupytext --to ipynb $<
+	@jupytext --to ipynb ${JPYOPTS} $<
 
 %.html : %.ipynb
 	@jupyter nbconvert $< --to html
