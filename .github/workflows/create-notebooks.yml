@@ -23,6 +23,13 @@ jobs:
  
     # Checkout
     - uses: actions/checkout@v4
+
+    # Python setup
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'
  
     # Test for changed notebooks, see https://github.com/dorny/paths-filter?tab=readme-ov-file#examples
     - uses: dorny/paths-filter@v3
@@ -46,11 +53,6 @@ jobs:
         # For example, remove .ipynb file on same path ($FILEPATH is a file with .md suffix)
         # rm ${FILEPATH%.md}.ipynb
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-          cache: 'pip'
       # You can test your matrix by printing the current Python version
       - name: Display Python version
         run: python --version
