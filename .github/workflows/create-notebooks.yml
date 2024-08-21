@@ -1,3 +1,4 @@
+# content taken from https://blog.ouseful.info/2021/11/10/simple-jupytext-github-action-to-update-jupyter-ipynb-notebooks-from-markdown/
 name: jupytext-create-notebooks
  
 on:
@@ -8,13 +9,20 @@ jobs:
   create-jupyter-notebooks:
 
     runs-on: ubuntu-latest
+
+    # required by https://github.com/stefanzweifel/git-auto-commit-action
+    permissions:
+      # Give the default GITHUB_TOKEN write permission to commit and push the
+      # added or changed files to the repository.
+      contents: write
+
     steps:
  
     # Checkout
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
  
-    # Test for markdown
-    - uses: dorny/paths-filter@v2
+    # Test for changed notebooks, see https://github.com/dorny/paths-filter?tab=readme-ov-file#examples
+    - uses: dorny/paths-filter@v3
       id: filter
       with:
         # Enable listing of files matching each filter.
@@ -28,16 +36,19 @@ jobs:
         filters: |
             notebooks:
                 - added|modified: 'notebooks/*.py'
+            dependencies:
+                - 'requirements.txt'
         # Should we also identify deleted md files
         # and then try to identify (and delete) .ipynb docs otherwise paired to them?
         # For example, remove .ipynb file on same path ($FILEPATH is a file with .md suffix)
         # rm ${FILEPATH%.md}.ipynb
 
     - name: Install Packages if changed files
-      if: ${{ steps.filter.outputs.notebooks == 'true' }}
+      if: ${{ steps.filter.outputs.dependencies == 'true' }}
       run: |
+        python --version
         python -m pip install uv
-        uv pip install -r notebooks/requirements.txt
+        uv pip install -r ./requirements.txt
  
     - name: Synch changed files
       if: ${{ steps.filter.outputs.notebooks == 'true' }}
@@ -51,7 +62,7 @@ jobs:
         jupytext --use-source-timestamp  --sync ${{ steps.filter.outputs.notebooks_files }}
  
     # Auto commit any updated notebook files
-    - uses: stefanzweifel/git-auto-commit-action@v4
+    - uses: stefanzweifel/git-auto-commit-action@v5
       with:
         # This would be more useful if the git hash were referenced?
         commit_message: Jupytext synch - modified, paired .py files
