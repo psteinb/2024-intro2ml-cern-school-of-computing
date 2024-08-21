@@ -67,7 +67,7 @@ jobs:
           # and has one or more paired docs defined
           # The timestamp on the synched ipynb file will be set to the
           # same time as the changed markdown file
-          jupytext --use-source-timestamp  --sync ${{ steps.filter.outputs.notebooks_files }}
+          jupytext --use-source-timestamp  --to ipynb ${{ steps.filter.outputs.notebooks_files }}
  
         # Auto commit any updated notebook files
       - uses: stefanzweifel/git-auto-commit-action@v5
