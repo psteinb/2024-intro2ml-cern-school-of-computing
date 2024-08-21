@@ -9,6 +9,9 @@ jobs:
   create-jupyter-notebooks:
 
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.12"]
 
     # required by https://github.com/stefanzweifel/git-auto-commit-action
     permissions:
@@ -20,6 +23,11 @@ jobs:
 
       # Checkout
       - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
 
       # Test for changed notebooks, see https://github.com/dorny/paths-filter?tab=readme-ov-file#examples
       - uses: dorny/paths-filter@v3
@@ -30,7 +38,7 @@ jobs:
           # Paths will be escaped and space-delimited.
           # Output is usable as command-line argument list in Linux shell
           list-files: shell
- 
+
           # In this example changed markdown will be spellchecked using aspell
           # If we specify we are only interested in added or modified files, deleted files are ignored
           filters: |
@@ -44,11 +52,12 @@ jobs:
           # rm ${FILEPATH%.md}.ipynb
 
       - name: Install Packages if changed files
-        if: ${{ steps.filter.outputs.dependencies == 'true' }}
+        #if: ${{ steps.filter.outputs.dependencies == 'true' }}
         run: |
-          python --version
+          python -m pip install --upgrade pip
+          python -m pip install --extra-index-url https://download.pytorch.org/whl/cpu torch torchvision
           python -m pip install -r ./requirements.txt
- 
+
       - name: Synch changed files
         if: ${{ steps.filter.outputs.notebooks == 'true' }}
         run: |
