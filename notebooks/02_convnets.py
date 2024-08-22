@@ -58,7 +58,7 @@ defaults = get_dataset_args()
 data = make_dataset(defaults)
 X, y = data['x'], data['y']
 
-X.shape, y.shape
+X.shape, y.shape, type(X), X.dtype, y.dtype
 
 # %% [markdown]
 # As we are interested in supervised learning, we rely on pairs of input data `X` and labels `y`. Here, the labels `y` refer to the number which each sequence in `X` resembles. Let's have a look at these sequences.
@@ -97,26 +97,32 @@ class MNIST1D(torch.utils.data.Dataset):
 
     def __init__(self,
                  train:bool = True,
-                 transform: Callable = None,
-                 target_transform: Callable = None,
+                 test_size: float = 0.1,
                  mnist1d_args: dict = get_dataset_args(),
                  seed: int = 42):
 
         super().__init__()
 
         self.is_training = train
-        self.transform = transform
-        self.target_transform = target_transform
         self.data = make_dataset(mnist1d_args)
+
+        # dataset split
         X_train, X_test, y_train, y_test = train_test_split(data['x'],
                                                             data['y'],
-                                                            test_size=0.1,
+                                                            test_size=test_size,
                                                             random_state=seed)
+
+        # normalize the data
+        self.X_loc = np.min(X_train)
+        self.X_scale = np.max(X_train) - np.min(X_test)
+
+        # decide training and testing
         if train:
-            self.X = X_train
+            self.X = (X_train - self.X_loc)/self.X_scale
             self.y = y_train
         else:
-            self.X = X_test
+            # use the same normalisation strategy as during training
+            self.X = (X_test - self.X_loc)/self.X_scale
             self.y = y_test
 
     def __len__(self):
@@ -124,12 +130,9 @@ class MNIST1D(torch.utils.data.Dataset):
 
     def __getitem__(self, index: int):
 
-        X = self.X[index:index+1, ...].astype(np.float32)
-        if self.transform is not None:
-            X = self.transform(X)
-        y = self.y[index:index+1, ...].astype(np.int64)
-        if self.target_transform is not None:
-            y = self.target_transform(y)
+        X = torch.from_numpy(self.X[index:index+1, ...].astype(np.float32))
+        y = torch.from_numpy(self.y[index,...].astype(np.int64))
+        
         return X, y
 
 # %% [markdown]
@@ -140,17 +143,22 @@ class MNIST1D(torch.utils.data.Dataset):
 # For more details, see the `pytorch` documentation on [Creating a Custom Dataset for your files](https://pytorch.org/tutorials/beginner/basics/data_tutorial.html#creating-a-custom-dataset-for-your-files) or [Datasets & DataLoaders](https://pytorch.org/tutorials/beginner/basics/data_tutorial.html).
 
 # %%
-training_data = MNIST1D(transform=torch.from_numpy, target_transform=torch.LongTensor)
-test_data = MNIST1D(train=False, transform=torch.from_numpy, target_transform=torch.LongTensor)
+training_data = MNIST1D()
+test_data = MNIST1D(train=False)
 
 nsamples = len(training_data)+len(test_data)
 assert nsamples == 4000, f"number of samples for MNIST1D is not 4000 but {nsamples}"
+
+testx, testy = test_data[12]
+assert testx.shape[-1] == 40 and testy.item() == 5, f"x:{testx.shape} y:{testy.shape}"
+assert isinstance(testx, torch.Tensor)
+assert isinstance(testy, torch.LongTensor)
 
 # %% [markdown]
 # In order to use the dataset for training, we need to create a DataLoader. A DataLoader orchestrates how the data is loaded and provided for the compute device that you intend to use. Note how we can set how many MNIST1D sequences at once will be provided to the compute device. This number, called the batch size, is set to `64` in the example below.
 
 # %%
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, TensorDataset
 
 train_dataloader = DataLoader(training_data, batch_size=64, shuffle=True)
 test_dataloader = DataLoader(test_data, batch_size=64, shuffle=True)
@@ -203,30 +211,36 @@ class MyCNN(torch.nn.Module):
         super().__init__()
         self.layers = torch.nn.Sequential()
 
+        # convolve and shrink input width by 2x
         self.layers.append(torch.nn.Conv1d(in_channels=1, out_channels=nchannels,
                                            kernel_size=5, padding=2, stride=2))
         self.layers.append(torch.nn.ReLU())
 
+        # convolve and shrink input width by 2x
+        self.layers.append(torch.nn.Conv1d(in_channels=nchannels, out_channels=nchannels,
+                                           kernel_size=5, padding=2, stride=2))
+        self.layers.append(torch.nn.ReLU())
+        
+        # convolve and keep input width
         self.layers.append(torch.nn.Conv1d(in_channels=nchannels, out_channels=nchannels,
                                            kernel_size=3, padding=1))
         self.layers.append(torch.nn.ReLU())
 
-        self.layers.append(torch.nn.Conv1d(in_channels=nchannels, out_channels=nchannels,
-                                           kernel_size=5, padding=2, stride=2))
-        self.layers.append(torch.nn.ReLU())
-
-        self.layers.append(torch.nn.Conv1d(in_channels=nchannels, out_channels=nchannels,
-                                           kernel_size=5, padding=2, stride=2))
-        self.layers.append(torch.nn.ReLU())
-        # collapse channels
-        self.layers.append(torch.nn.Conv1d(in_channels=nchannels, out_channels=1,
-                                           kernel_size=5, padding=2, stride=2))
+        # flatten and add a linear tail
         self.layers.append(torch.nn.Flatten())
-        self.layers.append(torch.nn.Softmax()) # to produce logits
+        self.layers.append(torch.nn.Linear(nchannels*10,10))
+        self.layers.append(torch.nn.Softmax(dim=-1)) # to produce logits
+
+        nparams = self.count_params()
+        print(f"initialized CNN with {nparams} parameters")
 
     def forward(self, x):
 
         return self.layers(x)
+
+    def count_params(self):
+        
+        return sum([p.view(-1).shape[0] for p in self.parameters()])
 
 # %% [markdown]
 # Again, the model definition has to comply to some rules:
@@ -236,7 +250,7 @@ class MyCNN(torch.nn.Module):
 # We can check that we have implemented the model "correctly", but just passing in some data. All weights are initialized randomly by default.
 
 # %%
-model = MyCNN() # construct the model
+model = MyCNN(nchannels=32) # construct the model
 output = model(train_X) # perform a forward pass (note the __call__ method is automatically using the forward function)
 print(output.shape)
 
@@ -246,7 +260,7 @@ print(output.shape)
 # CNNs have become extremely popular to use for classification tasks. A classification tries to categorize or classify a given input signal to a fixed number of possible outcomes. In our case, these outcomes are the class labels of MNIST1D. For this reason, we can call our model a classifyer now. To set up training, we have to set an optimizer. We use `AdamW` with default options for the time being. Note, to construct the optimizer, we have to provide all parameters of our model in the constructor.
 
 # %%
-optimizer = torch.optim.AdamW(model.parameters())
+optimizer = torch.optim.AdamW(model.parameters(), lr=1e-2)
 
 # %% [markdown]
 # As a next step, we have to consider the loss function. To do so, we will use the CrossEntropyLoss.
@@ -260,8 +274,8 @@ criterion = torch.nn.CrossEntropyLoss() # our loss function
 # %%
 from sklearn.metrics import accuracy_score as accuracy
 
-max_epochs = 30
-log_every = 2
+max_epochs = 60
+log_every = 5
 results = {'train_losses':[], 'test_losses': [],'train_acc': [], 'test_acc':[]}
 
 # containers for results per epoch
@@ -271,34 +285,49 @@ nteststeps = len(test_dataloader)
 test_acc, test_loss = torch.zeros((nteststeps,)), torch.zeros((nteststeps,))
 
 for epoch in range(max_epochs):
-    # perform training
 
+    # perform training for one epoch
     for idx, (X, y) in enumerate(train_dataloader):
 
+        # forward pass
         y_hat = model(X)
-        loss = criterion(y, y_hat)
 
+        # compute loss
+        loss = criterion(y_hat, y)
+
+        # compute gradient
         loss.backward()
+
+        # apply weight update rule
         optimizer.step()
+
+        # set gradients to 0 
         optimizer.zero_grad()
 
-        acc = accuracy(y.cpu().float().numpy(),
-                       y_hat.argmax(-1).cpu().numpy())
+        # compute metrics for monitoring
+        y_hat_class = y_hat.argmax(-1)
+        acc = accuracy(y.cpu().numpy(),
+                       y_hat_class.cpu().numpy())
+        
         train_loss[idx] = loss.item()
         train_acc[idx] = acc
 
     for idx, (X_test, y_test) in enumerate(test_dataloader):
         y_hat_test = model(X_test)
         loss_ = criterion(y_hat_test, y_test)
-        test_acc = accuracy(y_test.cpu().float().numpy(),
-                            y_hat_test.argmax(-1).cpu().numpy())
+
+        y_hat_test_class = y_hat_test.argmax(-1)
+        acc = accuracy(y_test.cpu().numpy(),
+                       y_hat_test_class.cpu().numpy())
         test_loss[idx] = loss_.item()
-        test_acc[idx] = test_acc
+        test_acc[idx] = acc
 
     results['train_losses'].append(train_loss.mean())
     results['train_acc'].append(train_acc.mean())
     results['test_losses'].append(test_loss.mean())
     results['test_acc'].append(test_acc.mean())
 
-    if epoch % log_every == 0:
+    if epoch % log_every == 0 or (epoch+1) == max_epochs:
         print(f"{epoch+1}/{max_epochs} :: training loss {train_loss.mean()} accuracy {train_acc.mean()}; test loss {test_loss.mean()} accuracy {test_acc.mean()}")
+
+# %%
