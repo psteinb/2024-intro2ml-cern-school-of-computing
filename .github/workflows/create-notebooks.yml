@@ -71,4 +71,6 @@ jobs:
           # This would be more useful if the git hash were referenced?
           commit_message: automated jupytext conversion of py:percent files to ipynb
           file_pattern: 'notebooks/*ipynb'
-          status_options: '-u'
+          status_options: '--ignored' #ipynb files are in the notebooks/.gitignore
+          add_options: '--force'
+
