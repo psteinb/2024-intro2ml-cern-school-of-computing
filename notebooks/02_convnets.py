@@ -296,7 +296,7 @@ print(model)
 # At the time of writing, there is a nice library called `torchinfo` available on [github](https://github.com/TylerYep/torchinfo) and [pypi](https://pypi.org/project/torchinfo/). Your task is to install this library and run the summary function with the `model` above.
 
 # %% [md] jupyter={"source_hidden": true}
-# Solution 02.3, first install the library
+# Solution 02.3, install the library if not present already
 #
 # Run the following code in a cell to install the `torchinfo` package:
 # ``` bash
