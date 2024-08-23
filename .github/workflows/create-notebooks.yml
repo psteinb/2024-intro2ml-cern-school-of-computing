@@ -9,9 +9,6 @@ jobs:
   create-jupyter-notebooks:
 
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.9", "3.12"]
 
     # required by https://github.com/stefanzweifel/git-auto-commit-action
     permissions:
@@ -25,12 +22,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.head_ref }}
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-          cache: 'pip'
 
       # Test for changed notebooks, see https://github.com/dorny/paths-filter?tab=readme-ov-file#examples
       - uses: dorny/paths-filter@v3
@@ -53,6 +44,8 @@ jobs:
           # and then try to identify (and delete) .ipynb docs otherwise paired to them?
           # For example, remove .ipynb file on same path ($FILEPATH is a file with .md suffix)
           # rm ${FILEPATH%.md}.ipynb
+      - name: Python version in use
+        run: "python --version"
 
       - name: Install Packages if changed files
         #if: ${{ steps.filter.outputs.dependencies == 'true' }}
