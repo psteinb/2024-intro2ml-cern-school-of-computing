@@ -23,8 +23,9 @@ x = torch.Tensor([[2.]])
 y = torch.Tensor([[5.]])
 
 # %% [markdown]
-# The central building block of `pytorch` is a `torch.Tensor` object. The API of `Tensor` is very similar to that of a `numpy.ndarray`. That makes it easier to switch between libraries.
-#
+"""
+The central building block of `pytorch` is a `torch.Tensor` object. The API of `Tensor` is very similar to that of a `numpy.ndarray`. That makes it easier to switch between libraries.
+"""
 
 # %% [markdown]
 # ## Our model

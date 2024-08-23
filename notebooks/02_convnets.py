@@ -66,11 +66,13 @@ np.random.seed(13)
 torch.random.manual_seed(12)
 
 # %% [markdown]
-# ## Loading 1D Training Data
-#
-# To explore convolutions, we will start out considering a one dimensional sequence. The sequence will be taken from the [MNIST1D](https://github.com/greydanus/mnist1d) dataset. The advantage of this dataset is, that it is small and can serve well to demonstrate key concepts of machine learning.
-#
-# <div style="display: block;margin-left: auto;margin-right: auto;width: 75%;"><img src="https://github.com/greydanus/mnist1d/raw/master/static/overview.png" alt="MNIST1D overview"></div>
+"""
+## Loading 1D Training Data
+
+To explore convolutions, we will start out considering a one dimensional sequence. The sequence will be taken from the [MNIST1D](https://github.com/greydanus/mnist1d) dataset. The advantage of this dataset is, that it is small and can serve well to demonstrate key concepts of machine learning.
+
+<div style="display: block;margin-left: auto;margin-right: auto;width: 75%;"><img src="https://github.com/greydanus/mnist1d/raw/master/static/overview.png" alt="MNIST1D overview"></div>
+"""
 
 # %%
 from mnist1d.data import get_dataset_args, make_dataset
