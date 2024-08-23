@@ -73,4 +73,5 @@ jobs:
       - uses: stefanzweifel/git-auto-commit-action@v5
         with:
           # This would be more useful if the git hash were referenced?
-          commit_message: Jupytext synch - modified, paired .py files
+          commit_message: automated jupytext conversion of py:percent files to ipynb
+          file_pattern: 'notebooks/*ipynb'
