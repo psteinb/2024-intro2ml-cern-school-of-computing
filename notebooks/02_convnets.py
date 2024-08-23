@@ -45,6 +45,27 @@
 # In sum, this network would have $1061716481$ parameters. As each trainable parameter in a pytorch model is typically a `float32` number. This would result in the model to be of size $1,061,716,481 \cdot 4 \text{Byte} = 4,246,865,924 \text{Byte} \approx 3.9 \text{GiB} \approx 4.2 \text{GB}$. Such a model would already exceed some GPU's memory. So we better look for a way to have neural networks with smaller number of parameters.
 
 # %% [markdown]
+"""
+## A note on reproducibility
+
+In the following code, we will rely a lot on [pseudorandom number generators](https://en.wikipedia.org/wiki/Pseudorandom_number_generator). They will not be too obvious, but play an important role. We will rely on them for:
+
+- splitting the dataset
+- shuffling the data during loading
+- initializing the weights of our network
+
+For didactical purposes, we hence fix the pseudorandomness to certain seed (or beginning of the random sequence). This will avoid confusion.
+"""
+
+# %%
+
+import numpy as np
+import torch
+
+np.random.seed(13)
+torch.random.manual_seed(12)
+
+# %% [markdown]
 # ## Loading 1D Training Data
 #
 # To explore convolutions, we will start out considering a one dimensional sequence. The sequence will be taken from the [MNIST1D](https://github.com/greydanus/mnist1d) dataset. The advantage of this dataset is, that it is small and can serve well to demonstrate key concepts of machine learning.
@@ -274,9 +295,13 @@ print(model)
 #
 # At the time of writing, there is a nice library called `torchinfo` available on [github](https://github.com/TylerYep/torchinfo) and [pypi](https://pypi.org/project/torchinfo/). Your task is to install this library and run the summary function with the `model` above.
 
-# %% jupyter={"source_hidden": true}
+# %% [md] jupyter={"source_hidden": true}
 # Solution 02.3, first install the library
-!python -m pip install torchinfo
+#
+# Run the following code in a cell to install the `torchinfo` package:
+# ``` bash
+# python -m pip install torchinfo
+# ```
 
 # %% jupyter={"source_hidden": true}
 # Solution 02.3, second use the library
@@ -360,4 +385,37 @@ for epoch in range(max_epochs):
     if epoch % log_every == 0 or (epoch+1) == max_epochs:
         print(f"{epoch+1}/{max_epochs} :: training loss {train_loss.mean()} accuracy {train_acc.mean()}; test loss {test_loss.mean()} accuracy {test_acc.mean()}")
 
-# %%
+# %% [markdown]
+"""
+You can tell from the above that pytorch is yet a very low level library. You have to code up the training for-loop yourself. This is in contrast to other libraries like [keras](https://keras.io), [pytorch-lightning](https://lightning.ai/docs/pytorch/stable/) or [scikit-learn](https://scikit-learn.org). These libraries provide you with complete "Trainer" or model-like objects which in turn offer a `.fit` method to start training. Decide on your own which suits your time budget, requirements and taste better.
+"""
+
+# %% [markdown]
+"""
+## **Exercise 02.4** Learning Curves
+
+Use the `results` object to plot the loss curves of your model! This is often a helpful visualisation to judge if longer training will make sense or to discover overfitting.
+"""
+
+# %% jupyter={"source_hidden": true}
+# Solution 02.4
+f, ax = plt.subplots(1, 2, figsize=(10, 4), sharex=True)
+
+# losses
+ax[0].plot(results['train_losses'],color="b",label="train")
+ax[0].plot(results['test_losses'],color="orange",label="test")
+ax[0].set_xlabel("epoch")
+ax[0].set_ylabel("CrossEntropy / a.u.")
+ax[0].set_title("Loss")
+
+# accuracy
+ax[1].plot(results['train_acc'],color="b",label="train")
+ax[1].plot(results['test_acc'],color="orange",label="test")
+ax[1].set_xlabel("epoch")
+ax[1].set_ylabel("Accuracy / a.u.")
+ax[1].set_ylim(0.,1.)
+ax[1].set_title("Prediction Quality")
+ax[1].legend()
+
+f.suptitle("CNN Classification Learning Curves")
+f.savefig("mnist1d_classification_learning_curve.svg")
