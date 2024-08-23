@@ -195,7 +195,7 @@ y = torch.Tensor([[5.]])
 # ## Our model
 #
 # We start out by defining the input data and the outputs. We will use the data of Group 1 as an example.
-# To define a neural network, the mechanics of pytorch require us to define a class. This class needs to be based of `torch.nn.Module`. Within the class, we have to define the `forward` function which is effectively the forward pass of our model.
+# To define a neural network, the mechanics of pytorch require us to define a class. This class needs to be derived from `torch.nn.Module`. Within the class, we have to define the `forward` function which is effectively the forward pass of our model and provide a constructor method `__init__`.
 
 # %%
 
@@ -238,7 +238,7 @@ for param in model.named_parameters():
     print(name, value.item())
 
 # %%
-# a first feed forward pass can be invoced like this
+# A first feed forward pass can be invoced like this! Note the syntax model(x) effectively calls model.forward(x).
 
 y_hat = model(x)
 print(y_hat.item(), y.item())
