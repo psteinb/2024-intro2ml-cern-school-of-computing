@@ -19,7 +19,7 @@
 #
 # We start this exploration with a small motivating Gedankenexperiment.
 #
-# ## 02.1 A MLP for my Phone
+# ## **Exercise 02.1** A MLP for my Phone
 #
 # Take out your phone. Check in the picture galery some of the last images you took. Try to find out how many pixels such an image has! You should arrive with a tuple that denominates height and width of such an image.
 #
@@ -243,7 +243,7 @@ class MyCNN(torch.nn.Module):
         return sum([p.view(-1).shape[0] for p in self.parameters()])
 
 # %% [markdown]
-# Again, the model definition has to comply to some rules:
+# Again, the model definition above has to comply to some rules:
 # - the model has to inherit from `torch.nn.Module`
 # - the model has to implement `__init__`
 # - the model has to implement a `forward` function
@@ -253,6 +253,36 @@ class MyCNN(torch.nn.Module):
 model = MyCNN(nchannels=32) # construct the model
 output = model(train_X) # perform a forward pass (note the __call__ method is automatically using the forward function)
 print(output.shape)
+
+# %% [markdown]
+# ## **Exercise 02.2** How does my model look like?
+#
+# When designing a model, it can be very easy to loose track of what you are doing. In this exercise, we want to explore how to inspect models. `torch` only has one built-in way to display the structure of a model. Try the following code:
+#
+# `print(model)`
+#
+# Doing so can also serve as another first test, if you have implemented the model with respect to python syntax correctly.
+
+# %% jupyter={"source_hidden": true}
+# Solution 02.2
+print(model)
+
+# %% [markdown]
+# ## **Exercise 02.3** More than just __repr__!
+#
+# Printing a model is nice and provides a first glance at the structure of your architecture. In practice however, there is one more thing that is crucial in designing a torch model. You will notice with time how essential it is to understand how data flows through a model! For this, `torch` does **NOT** have built-in methods.
+#
+# At the time of writing, there is a nice library called `torchinfo` available on [github](https://github.com/TylerYep/torchinfo) and [pypi](https://pypi.org/project/torchinfo/). Your task is to install this library and run the summary function with the `model` above.
+
+# %% jupyter={"source_hidden": true}
+# Solution 02.3, first install the library
+!python -m pip install torchinfo
+
+# %% jupyter={"source_hidden": true}
+# Solution 02.3, second use the library
+from torchinfo import summary
+
+summary(model, input_size=train_X.shape)
 
 # %% [markdown]
 # ## Classification with a CNN
