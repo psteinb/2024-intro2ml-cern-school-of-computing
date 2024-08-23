@@ -6,7 +6,7 @@ notebook
 #required to run the notebooks
 torch
 torchvision
-matplotlib
+seaborn
 mnist1d
 scikit-learn
 torchinfo
