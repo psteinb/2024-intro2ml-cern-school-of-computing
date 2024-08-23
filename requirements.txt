@@ -6,9 +6,10 @@ notebook
 #required to run the notebooks
 torch
 torchvision
-seaborn
+matplotlib
 mnist1d
 scikit-learn
+torchinfo
 
 #nice to have for installing things
 uv
