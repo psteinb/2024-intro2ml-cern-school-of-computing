@@ -148,6 +148,56 @@ class MyEncoder(torch.nn.Module):
 # %%
 enc = MyEncoder()
 print(f"constructed encoder with {count_params(enc)} parameters")
-X_prime = enc(X)
 
-print(X.shape, X.dtype, "->", X_prime.shape, X_prime.dtype)
+# convert input data to torch.Tensor
+Xt = torch.from_numpy(X)
+# convolutions in torch require an explicit channel to be present in the data
+Xt = Xt.unsqueeze(1)
+# convert to float
+Xt = Xt.float()
+# extract only first 8 samples for testing
+Xtest = Xt[:8, ...]
+
+latent_h = enc(Xtest)
+
+print(Xtest.shape, Xtest.dtype, "->", latent_h.shape, latent_h.dtype)
+
+# %% [markdown]
+"""
+The encoder has been constructed. Now, we need to add a decoder object to reconstruct from the latent space.
+"""
+
+# %%
+class MyDecoder(torch.nn.Module):
+
+    def __init__(self, nlayers: int = 3, nchannels=16):
+
+        super().__init__()
+        self.layers = torch.nn.Sequential()
+
+        for i in range(nlayers-1):
+            inchannels = 1 if i == 0 else nchannels
+            # deconvolve/Upsample and grow input width by 2x
+            self.layers.append(torch.nn.ConvTranspose1d(in_channels=inchannels,
+                                                        out_channels=nchannels,
+                                                        kernel_size=5,
+                                                        padding=2,
+                                                        stride=2,
+                                                        output_padding=1))
+            self.layers.append(torch.nn.ReLU())
+
+        # convolve and keep input width
+        self.layers.append(torch.nn.Conv1d(in_channels=nchannels, out_channels=1,
+                                           kernel_size=3, padding=1))
+
+    def forward(self, x):
+
+        return self.layers(x)
+
+# %%
+dec = MyDecoder()
+print(f"constructed decoder with {count_params(dec)} parameters")
+
+Xt_prime = dec(latent_h.unsqueeze(1))
+assert Xt_prime.shape == Xtest.shape, f"{Xt_prime.shape} != {Xtest.shape}"
+print(f"decoder is ready to train!")
