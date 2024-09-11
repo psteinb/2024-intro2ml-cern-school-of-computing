@@ -42,7 +42,7 @@
 # 3. layer: $128 \cdot 128 = 16384$ weights, $128$ bias terms, $16384+128=16512$ parameters
 # 4. layer: $128 \cdot 1 = 128$ weights, $1$ bias term, $128+1=129$ parameters
 #
-# In sum, this network would have $1061716481$ parameters. As each trainable parameter in a pytorch model is typically a `float32` number. This would result in the model to be of size $1,061,716,481 \cdot 4 \text{Byte} = 4,246,865,924 \text{Byte} \approx 3.9 \text{GiB} \approx 4.2 \text{GB}$. Such a model would already exceed some GPU's memory. So we better look for a way to have neural networks with smaller number of parameters.
+# In sum, this network would have $1061716481$ parameters. As each trainable parameter in a pytorch model is typically a `float32` number. This would result in the model to be of size $1,061,716,481 \cdot 4 \text{Byte} = 4,246,865,924 \text{Byte} \approx 3.9 \text{GiB} \approx 4.2 \text{GB}$. Such a model would already exceed some GPU's memory. So we better look for a way to have neural networks with a smaller number of parameters.
 
 # %% [markdown]
 """
@@ -130,8 +130,8 @@ class MNIST1D(torch.utils.data.Dataset):
         self.data = make_dataset(mnist1d_args)
 
         # dataset split
-        X_train, X_test, y_train, y_test = train_test_split(data['x'],
-                                                            data['y'],
+        X_train, X_test, y_train, y_test = train_test_split(self.data['x'],
+                                                            self.data['y'],
                                                             test_size=test_size,
                                                             random_state=seed)
 
@@ -155,7 +155,7 @@ class MNIST1D(torch.utils.data.Dataset):
 
         X = torch.from_numpy(self.X[index:index+1, ...].astype(np.float32))
         y = torch.from_numpy(self.y[index,...].astype(np.int64))
-        
+
         return X, y
 
 # %% [markdown]
@@ -243,7 +243,7 @@ class MyCNN(torch.nn.Module):
         self.layers.append(torch.nn.Conv1d(in_channels=nchannels, out_channels=nchannels,
                                            kernel_size=5, padding=2, stride=2))
         self.layers.append(torch.nn.ReLU())
-        
+
         # convolve and keep input width
         self.layers.append(torch.nn.Conv1d(in_channels=nchannels, out_channels=nchannels,
                                            kernel_size=3, padding=1))
@@ -262,7 +262,7 @@ class MyCNN(torch.nn.Module):
         return self.layers(x)
 
     def count_params(self):
-        
+
         return sum([p.view(-1).shape[0] for p in self.parameters()])
 
 # %% [markdown]
@@ -358,14 +358,14 @@ for epoch in range(max_epochs):
         # apply weight update rule
         optimizer.step()
 
-        # set gradients to 0 
+        # set gradients to 0
         optimizer.zero_grad()
 
         # compute metrics for monitoring
         y_hat_class = y_hat.argmax(-1)
         acc = accuracy(y.cpu().numpy(),
                        y_hat_class.cpu().numpy())
-        
+
         train_loss[idx] = loss.item()
         train_acc[idx] = acc
 
