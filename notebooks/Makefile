@@ -1,4 +1,5 @@
-JUPYTEXT_FILES=$(wildcard *py)
+PYTHON_FILES=$(wildcard *py)
+JUPYTEXT_FILES=$(filter 0%py,${PYTHON_FILES})
 NOTEBOOKS_PLAIN=$(JUPYTEXT_FILES:%.py=%.ipynb)
 NOTEBOOKS_HTML =$(JUPYTEXT_FILES:%.py=%.html)
 
