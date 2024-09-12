@@ -433,6 +433,7 @@ ax[0].plot(results["train_losses"], color="b", label="train")
 ax[0].plot(results["test_losses"], color="orange", label="test")
 ax[0].set_xlabel("epoch")
 ax[0].set_ylabel("avergage MSE Loss / a.u.")
+ax[0].set_yscale("log")
 ax[0].set_title("Loss")
 ax[0].legend()
 
@@ -514,6 +515,7 @@ ax[0].plot(lresults["train_losses"], color="b", label="train")
 ax[0].plot(lresults["test_losses"], color="orange", label="test")
 ax[0].set_xlabel("epoch")
 ax[0].set_ylabel("avergage MSE Loss / a.u.")
+ax[0].set_yscale("log")
 ax[0].set_title("Loss")
 ax[0].legend()
 
@@ -541,4 +543,5 @@ To draw more conclusions, here are some things to try while retaining the number
 - train on more data
 - use different activation functions
 - add more layers
+- optimize the hyperparameters for training (learning_rate, number of epochs, ...)
 """
