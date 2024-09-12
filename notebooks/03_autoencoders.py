@@ -578,7 +578,7 @@ import seaborn as sns
 import pandas as pd
 
 test_x, _ = next(iter(test_cleanloader))
-latents = cmodel.enc(test_x.unsqueeze(0))
+latents = cmodel.enc(test_x)
 latents_ = latents.detach().squeeze().numpy()
 latentsdf = pd.DataFrame(data=latents_,
                          index=torch.arange(test_x.shape[0]).numpy())
@@ -616,7 +616,7 @@ f.savefig("mnist1d_clean_conv_autoencoder_generated.svg")
 # %% [markdown]
 """
 Congratulations! You have just trained your first generative AI! But look at what you created, the generated examples look vaguely like the original. This can have 2 main reasons:
-- your decoder is not expressive enough (try optimising it)
+- your decoder is not expressive enough (try optimising it, increase the size of the training set, ...)
 - the random samples we picked landed in regions of the latent space which the autoencoder did not populate (in other words in holes)
 
 For the latter reason, people started looking into variational autoencoders in order to create latent space populations which are much more smooth and do not contain any holes.
