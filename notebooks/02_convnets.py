@@ -181,7 +181,7 @@ assert isinstance(testy, torch.LongTensor)
 # In order to use the dataset for training, we need to create a DataLoader. A DataLoader orchestrates how the data is loaded and provided for the compute device that you intend to use. Note how we can set how many MNIST1D sequences at once will be provided to the compute device. This number, called the batch size, is set to `64` in the example below.
 
 # %%
-from torch.utils.data import DataLoader, TensorDataset
+from torch.utils.data import DataLoader
 
 train_dataloader = DataLoader(training_data, batch_size=64, shuffle=True)
 test_dataloader = DataLoader(test_data, batch_size=64, shuffle=True)
