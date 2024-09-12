@@ -545,3 +545,79 @@ To draw more conclusions, here are some things to try while retaining the number
 - add more layers
 - optimize the hyperparameters for training (learning_rate, number of epochs, ...)
 """
+
+# %% [markdown]
+"""
+# BONUS: Why do we need VAEs then?
+
+If autoencoders work so well, why would you then expand and alter this technology to create variational autoencoders? The answer is somewhat straight forward and complicated at the same time: because AEs do not generate data well. Let's explore this!
+"""
+
+# %%
+clean_test = MNIST1D(mnist1d_args=clean_config, train=False)
+clean_train = MNIST1D(mnist1d_args=clean_config, train=True)
+
+train_cleanloader = DataLoader(clean_train, batch_size=64, shuffle=True)
+test_cleanloader = DataLoader(clean_test, batch_size=len(clean_test), shuffle=False)
+
+learning_rate = 1e-3
+max_epochs = 10
+log_every = 2
+cmodel = MyAutoencoder()
+coptimizer = optimizer = torch.optim.AdamW(cmodel.parameters(), lr=learning_rate)
+
+lresults = train_autoencoder(cmodel,
+                             coptimizer,
+                             criterion,
+                             clean_train,
+                             clean_test,
+                             max_epochs)
+
+# let's look at the latent space of the autoencoder
+import seaborn as sns
+import pandas as pd
+
+test_x, _ = next(iter(test_cleanloader))
+latents = cmodel.enc(test_x.unsqueeze(0))
+latents_ = latents.detach().squeeze().numpy()
+latentsdf = pd.DataFrame(data=latents_,
+                         index=torch.arange(test_x.shape[0]).numpy())
+grid = sns.pairplot(data=latentsdf, corner=True)
+grid.savefig("mnist1d_clean_conv_autoencoder_latents.svg")
+
+mins, means, stds, maxs = np.min( latents_, axis=0), np.mean(latents_, axis=0), np.std( latents_, axis=0), np.max(latents_, axis=0)
+
+print("min values" , mins)
+print("mean values", means)
+print("std values" , stds )
+print("max values" , maxs )
+# %% [markdown]
+"""
+The plot above tells us, that the shape of the distributions in each latent space dimension is somewhat gaussian. You can verify this, but there is still no guarantee that with more data, these distributions might be non-normal.
+
+So let's turn the table around. Let's sample from a multi-variate normal distribution and only generate samples using the decoder.
+"""
+
+# %%
+cov = stds.T*np.eye(stds.shape[0])
+generated_ = np.random.multivariate_normal(means, cov, 16)
+generated = torch.from_numpy(generated_).float()
+assert generated.shape == (16, 10)
+
+X_new = cmodel.dec(generated)
+
+f, ax = plt.subplots(4, 4, figsize=(12, 12), sharex=True, sharey=True)
+cnt = 0
+for r in range(4):
+    for c in range(4):
+        ax[r, c].plot(generated[cnt, ...].detach().numpy())
+        cnt += 1
+f.savefig("mnist1d_clean_conv_autoencoder_generated.svg")
+# %% [markdown]
+"""
+Congratulations! You have just trained your first generative AI! But look at what you created, the generated examples look vaguely like the original. This can have 2 main reasons:
+- your decoder is not expressive enough (try optimising it)
+- the random samples we picked landed in regions of the latent space which the autoencoder did not populate (in other words in holes)
+
+For the latter reason, people started looking into variational autoencoders in order to create latent space populations which are much more smooth and do not contain any holes.
+"""
