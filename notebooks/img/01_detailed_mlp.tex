@@ -11,6 +11,7 @@
 \renewcommand{\familydefault}{\sfdefault}
 \usepackage{helvet}
 \usepackage{ifthen}
+\usepackage{amsmath}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -32,10 +33,9 @@
  $\hat{y}_{#1}=\sigma(y'_{#1})$%
 }
 \providecommand{\synapseIHText}[2]{%
- {\ifthenelse{\equal{#2}{0}}{\small$W^{(I)}_{#1#2}$}{\dots}}}
+  {\ifthenelse{\equal{#2}{0}}{\small$\boldsymbol{\omega}^{(I)}_{#1#2}$}{\dots}}}
 \providecommand{\synapseHOText}[2]{%
-  % \small$W^{(H)}_{#1#2}$
-  {\ifthenelse{\equal{#2}{0}}{\small$W^{(II)}_{#1#2}$}{\dots}}%
+  {\ifthenelse{\equal{#2}{0}}{\small$\boldsymbol{\omega}^{(II)}_{#1#2}$}{\dots}}%
 }
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
