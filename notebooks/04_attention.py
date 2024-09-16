@@ -407,9 +407,10 @@ class CustomTorchAttn(torch.nn.Module):
                 torch.nn.ReLU()
         )
         self.attn_layer = torch.nn.MultiheadAttention(num_channels,
-                                        num_heads=1,
-                                        kdim=num_channels,
-                                                      vdim=num_channels)
+                                                      num_heads=1,
+                                                      kdim=num_channels,
+                                                      vdim=num_channels,
+                                                      batch_first=True)
 
 
         self.tail_layers = torch.nn.Sequential()
@@ -426,12 +427,15 @@ class CustomTorchAttn(torch.nn.Module):
 
     def forward(self, x):
 
-        Q = self.head_layers(x)
-        K = self.head_layers(x)
-        V = self.head_layers(x)
+        Q_ = self.head_layers(x)
+        K_ = self.head_layers(x)
+        V_ = self.head_layers(x)
 
-        embedded = self.attn_layer(Q,K,V, need_weights=False)
-        print(">>", [ it.shape for it in embedded ])
+        V = V_.swapaxes(-1, -2)
+        K = K_.swapaxes(-1, -2)
+        Q = Q_.swapaxes(-1, -2)
+
+        embedded, _ = self.attn_layer(Q, K, V, need_weights=False)
         value = self.tail_layers(embedded)
 
         return value
