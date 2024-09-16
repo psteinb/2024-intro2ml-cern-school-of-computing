@@ -26,7 +26,7 @@ This notebook will guide you through how to
 
 # %% [markdown]
 r"""
-## A FeedForward MLP
+## A Feed Forward MLP
 
 Let's recap the essential ingredients of a feedforward neural network:
 
@@ -42,7 +42,7 @@ The output of the hidden unit will be considered to be the input of the last lay
 
 # %% [markdown]
 """
-> **A FeedForward MLP with all details**
+> **A Feed Forward MLP with all details**
 >
 > For you to dive into all details, here is a pictorial representation of a MLP with all math operations spelled out.
 >
