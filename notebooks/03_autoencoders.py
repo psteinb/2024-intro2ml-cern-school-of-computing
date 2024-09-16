@@ -378,7 +378,7 @@ criterion = torch.nn.MSELoss()  # our loss function
 
 # %%
 # write the training loop
-def train_autoencoder(model, opt, crit, train_dataloader, test_dataloader, max_epochs):
+def train_autoencoder(model, opt, crit, train_dataloader, test_dataloader, max_epochs, log_every=5):
 
     results = {"train_losses": [], "test_losses": []}
     ntrainsteps = len(train_dataloader)
@@ -392,22 +392,22 @@ def train_autoencoder(model, opt, crit, train_dataloader, test_dataloader, max_e
             X_prime = model(X)
 
             # compute loss
-            loss = criterion(X_prime, X)
+            loss = crit(X_prime, X)
 
             # compute gradient
             loss.backward()
 
             # apply weight update rule
-            optimizer.step()
+            opt.step()
 
             # set gradients to 0
-            optimizer.zero_grad()
+            opt.zero_grad()
 
             train_loss[idx] = loss.item()
 
         for idx, (X_test, y_test) in enumerate(test_dataloader):
             X_prime_test = model(X_test)
-            loss_ = criterion(X_prime_test, X_test)
+            loss_ = crit(X_prime_test, X_test)
             test_loss[idx] = loss_.item()
 
         results["train_losses"].append(train_loss.mean())
@@ -425,7 +425,8 @@ results = train_autoencoder(model,
                             criterion,
                             train_dataloader,
                             test_dataloader,
-                            max_epochs)
+                            max_epochs,
+                            log_every)
 # %%
 f, ax = plt.subplots(1, 2, figsize=(10, 4))
 
@@ -506,7 +507,8 @@ lresults = train_autoencoder(lmodel,
                              criterion,
                              train_dataloader,
                              test_dataloader,
-                             max_epochs)
+                             max_epochs,
+                            log_every)
 
 # viz the results
 f, ax = plt.subplots(1, 2, figsize=(10, 4))
@@ -571,7 +573,8 @@ lresults = train_autoencoder(cmodel,
                              criterion,
                              clean_train,
                              clean_test,
-                             max_epochs)
+                             max_epochs,
+                            log_every)
 
 # let's look at the latent space of the autoencoder
 import seaborn as sns
