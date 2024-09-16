@@ -65,6 +65,7 @@ def generate_sequences(
     seq_width_max=11.0,
     group_by_locations=False,
     rng=np.random.default_rng(),
+    out_dtype= np.float32
 ):
     # Position / height / width
 
@@ -138,7 +139,7 @@ def generate_sequences(
         tr = np_cat((tr, tr2), 0)
         bx = np_cat((bx, bx2), 0)
 
-    return input, targets, tr, bx
+    return input.astype(out_dtype), targets.astype(out_dtype), tr.astype(out_dtype), bx.astype(out_dtype)
 
 
 def save_sequence_images(
