@@ -4,8 +4,8 @@ ipykernel
 notebook
 
 #required to run the notebooks
-torch
-torchvision
+torch 
+#torchvision
 seaborn
 mnist1d
 scikit-learn

@@ -80,16 +80,10 @@ ax[1].set_title("target")
 # In the following, we like to create a regression model using convolutions only, which tries to accomplish the task above.
 
 # %%
-# we have to tell keras to use the torch backend
-import os
-os.environ["KERAS_BACKEND"] = "torch"
-
-# %%
-# now import keras
-import keras
+import torch
 # set the seeds to make the notebook reproducible
 np.random.seed(41)
-keras.utils.set_random_seed(43)
+torch.random.manual_seed(43)
 
 # %%
 # normalize the signal, zscale if required
@@ -121,6 +115,11 @@ x.shape, y.shape, x_test.shape, y_test.shape
 # # creating the model
 
 # %%
+class RegressionFCN(torch.nn.Module):
+
+    def __init__(self, inshape, channels=64, ksize=5):
+        super().__init__()
+
 
 
 def create_fcn(inshape=x.shape[-2:], channels=64, ksize=5):

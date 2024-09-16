@@ -23,11 +23,6 @@ import torch
 print("torch installed, ", torch.__version__)
 
 # %%
-import torchvision
-
-print("torchvision installed, ", torchvision.__version__)
-
-# %%
 
 import seaborn
 
