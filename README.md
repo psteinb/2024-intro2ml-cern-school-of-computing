@@ -27,19 +27,25 @@ python -m pip install --extra-index-url https://download.pytorch.org/whl/cpu tor
 If you want to use the CERN SWAN system, here is a brief intro on how to do it:
 
 0. open https://swan.cern.ch (provide your credentials if required)
+
 1. you should be queried for the software environment to setup (if not use `...` in the top menue and click `Change configuration`)  
 <div style="display: block;margin-left: auto;margin-right: auto;width: 75%;"><img src="notebooks/img/swan-00-env-defaults.png" alt="default SWAN software environment"></div>  
 Make the changes as highlighted below:  
 <div style="display: block;margin-left: auto;margin-right: auto;width: 75%;"><img src="notebooks/img/swan-00-env-changes.png" alt="edited SWAN software environment"></div>
+
 2. Under `My Projects`, click on `Download Project from git` (right hand side)  
 <div style="display: block;margin-left: auto;margin-right: auto;width: 75%;"><img src="notebooks/img/swan-01-landing.png" alt="SWAN projects landing page"></div>  
 You should see this now:  
 <div style="display: block;margin-left: auto;margin-right: auto;width: 75%;"><img src="notebooks/img/swan-02-gitproject-empty.png" alt="SWAN git project URL"></div>  
+
 3. insert the URL to this repo `https://github.com/psteinb/2024-intro2ml-cern-school-of-computing.git` (including a trailing `.git` suffix as indicated)  
 <div style="display: block;margin-left: auto;margin-right: auto;width: 75%;"><img src="notebooks/img/swan-02-gitproject-filled-suffix.png" alt="SWAN git project filled correctly"></div>  
+
 4. Hit `Download`! 
+
 5. You should see something like this   
 <div style="display: block;margin-left: auto;margin-right: auto;width: 75%;"><img src="notebooks/img/swan-03-repo-ready.png" alt="SWAN git project correctly downloaded"></div>  
+
 6. Please open `notebooks/00_intro2ml_envcheck.ipynb`. Read and run all cells!
 
 ## Check your Software Stack
