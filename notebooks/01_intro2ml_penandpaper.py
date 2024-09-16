@@ -13,55 +13,63 @@
 # ---
 
 # %% [markdown]
-# # A multi-layer perceptron with pen and paper
-#
-# Multi-layer Perceptrons (MLP) were some of the first Machine Learning (ML) architectures in use.
-#
-# This notebook will guide you through how to
-# - perform a forward pass through a very simple MLP
-# - how to backpropagate through the network
-# - how to perform the same operations with [pytorch](https://pytorch.org)
+"""
+# A multi-layer perceptron with pen and paper
+
+Multi-layer Perceptrons (MLP) were some of the first Machine Learning (ML) architectures in use.
+
+This notebook will guide you through how to
+- perform a forward pass through a very simple MLP
+- how to backpropagate through the network
+- how to perform the same operations with [pytorch](https://pytorch.org)
+"""
 
 # %% [markdown]
-# ## A FeedForward MLP
-#
-# Let's recap the essential ingredients of a feedforward neural network:
-#
-# <div style="display: block;margin-left: auto;margin-right: auto;width: 75%;"><img src="img/01_plain_mlp.svg" alt="plain MLP"></div>
-#
-# In the above, the network receives an input datum $x$. This is used as input to the first hidden unit $\sigma (\vec{W} \cdot \vec{x} + \vec{b})$. The hidden unit consists of 3 ingredients:
-# - a weight matrix $W$
-# - a bias vector $b$
-# - an activation function $\sigma$
-#
-# The output of the hidden unit will be considered to be the input of the last layer. This in turn produces the output $\vec{\hat{y}}$ of the forward pass. In order to establish a learning process, this prediction $\hat{y}$ will be compared with a label $y$ using the loss the function $\mathcal{L}(y,\hat{y})$.
+r"""
+## A FeedForward MLP
+
+Let's recap the essential ingredients of a feedforward neural network:
+
+<div style="display: block;margin-left: auto;margin-right: auto;width: 75%;"><img src="img/01_plain_mlp.svg" alt="plain MLP"></div>
+
+In the above, the network receives an input datum $x$. This is used as input to the first hidden unit $\sigma (\boldsymbol{\omega} \cdot \vec{x} + \vec{\beta})$. The hidden unit consists of 3 ingredients:
+- a weight matrix $\boldsymbol{\omega}$
+- a bias vector $\vec{\beta}$
+- an activation function $\sigma$
+
+The output of the hidden unit will be considered to be the input of the last layer. This in turn produces the output $\vec{\hat{y}}$ of the forward pass. In order to establish a learning process, this prediction $\hat{y}$ will be compared with a label $y$ using the loss the function $\mathcal{L}(y,\hat{y})$.
+"""
 
 # %% [markdown]
-# > **A FeedForward MLP with all details**
-# >
-# > For you to dive into all details, here is a pictorial representation of a MLP with all math operations spelled out.
-# >
-# > <div style="display: block;margin-left: auto;margin-right: auto;width: 75%;"><img src="img/01_detailed_mlp.svg" alt="detailed MLP"></div>
-# >
-# > To read through it, take your hand to block out the right hand part of the network. Then follow the flow of datum $x_0$ through the hidden layers until the output layers. Once you are done following $x_0$, have a look at $x_1$. You will notice that the operations are the same, except the input.
-# >
-# > Some comments to the above:
-# > - the figure omits the display of all matrix elements of $W^{I}$ and $W^{II}$ to remain clear for the reader
-# > - the last layer does not explicitely state which activation is used. Depending on the use case, this activation function can be a [ReLU](https://en.wikipedia.org/wiki/ReLU) or [Sigmoid](https://en.wikipedia.org/wiki/Sigmoid_function) (for regression) or a [softmax](https://en.wikipedia.org/wiki/Softmax_function) function (for classification).
+"""
+> **A FeedForward MLP with all details**
+>
+> For you to dive into all details, here is a pictorial representation of a MLP with all math operations spelled out.
+>
+> <div style="display: block;margin-left: auto;margin-right: auto;width: 75%;"><img src="img/01_detailed_mlp.svg" alt="detailed MLP"></div>
+>
+> To read through it, take your hand to block out the right hand part of the network. Then follow the flow of datum $x_0$ through the hidden layers until the output layers. Once you are done following $x_0$, have a look at $x_1$. You will notice that the operations are the same, except the input.
+>
+> Some comments to the above:
+> - the figure omits the display of all matrix elements of $W^{I}$ and $W^{II}$ to remain clear for the reader
+> - the last layer does not explicitely state which activation is used. Depending on the use case, this activation function can be a [ReLU](https://en.wikipedia.org/wiki/ReLU) or [Sigmoid](https://en.wikipedia.org/wiki/Sigmoid_function) (for regression) or a [softmax](https://en.wikipedia.org/wiki/Softmax_function) function (for classification).
+"""
 
 # %% [markdown]
-# **Exercise 01.1**
-#
-# <div style="display: block;margin-left: auto;margin-right: auto;width: 75%;"><img src="img/01_detailed_mlp.svg.svg" alt="linear MLP with values"></div>
-#
-# Take pen and paper or a digital equivalent. Mark the path of all computations which result in $y_{1}$! Write down the weight matrix elements which will be used to compute this output.
+r"""
+**Exercise 01.1**
+
+<div style="display: block;margin-left: auto;margin-right: auto;width: 75%;"><img src="img/01_detailed_mlp.svg" alt="linear MLP with values"></div>
+
+Take pen and paper or a digital equivalent. Mark the path of all computations which result in $y_{1}$! Write down the weight matrix elements which will be used to compute this output.
+"""
 
 # %% [markdown] jupyter={"source_hidden": true}
 # **Solution 01.1**
 #
-# <div style="display: block;margin-left: auto;margin-right: auto;width: 75%;"><img src="img/01_detailed_mlp.svg.svg" alt="linear MLP with values"></div>
+# <div style="display: block;margin-left: auto;margin-right: auto;width: 75%;"><img src="img/01_detailed_mlp.svg" alt="linear MLP with values"></div>
 #
-# All weight matrix elements will be used except the following 3 elements $W_{00}^{II}, W_{10}^{II}, W_{10}^{II}$ as their are required to calculate $\hat{y}_0$. All results of the hidden layer will be used as inputs to the last layer, that is why all elements of $W^{I}$ are part of the calculation.
+# All weight matrix elements will be used except the following 3 elements $\boldsymbol{\omega}_{00}^{II}, \boldsymbol{\omega}_{10}^{II}, \boldsymbol{\omega}_{10}^{II}$ as their are required to calculate $\hat{y}_0$. All results of the hidden layer will be used as inputs to the last layer, that is why all elements of $W^{I}$ are part of the calculation.
 
 
 # %% [markdown]
@@ -71,86 +79,92 @@
 #
 # <div style="display: block;margin-left: auto;margin-right: auto;width: 75%;"><img src="img/01_1D_mlp.svg" alt="1D MLP"></div>
 #
-# In the above, the network receives an input datum $x$. This is used as input to the first hidden unit $\sigma (w \cdot x' + b)$. The hidden unit consists of 3 ingredients:
-# - the weight $w$
-# - the bias $b$
+# In the above, the network receives an input datum $x$. This is used as input to the first hidden unit $\sigma (\omega \cdot x' + \beta)$. The hidden unit consists of 3 ingredients:
+# - the weight $\omega$
+# - the bias $\beta$
 # - the activation function $\sigma$
 #
 # The output of the hidden unit will be considered to be the output of the forward pass. In order to establish a learning process, this prediction $y'$ will be compared with a label $y$ using the loss the function $\mathcal{L}(y,y')$.
 
 # %% [markdown]
-# **Exercise 01.2**
-#
-# <div style="display: block;margin-left: auto;margin-right: auto;width: 75%;"><img src="img/01_1D_mlp_filled.svg" alt="linear MLP with values"></div>
-#
-# Take pen and paper. Compute a full forward pass using the following values:
-#
-# - input $x = 2$
-# - weight $w = .5$
-# - bias $b = 1$
-# - label $y = 1.5$
-#
-# Use the [ReLU function](https://en.wikipedia.org/wiki/Rectifier_(neural_networks)) for $\sigma$ and the mean squared error ([MSE](https://en.wikipedia.org/wiki/Mean_squared_error)) for the loss function.
+r"""
+**Exercise 01.2**
+
+<div style="display: block;margin-left: auto;margin-right: auto;width: 75%;"><img src="img/01_1D_mlp_filled.svg" alt="linear MLP with values"></div>
+
+Take pen and paper. Compute a full forward pass using the following values:
+
+- input $x = 2$
+- weight $\omega = .5$
+- bias $\beta = 1$
+- label $y = 1.5$
+
+Use the [ReLU function](https://en.wikipedia.org/wiki/Rectifier_(neural_networks)) for $\sigma$ and the mean squared error ([MSE](https://en.wikipedia.org/wiki/Mean_squared_error)) for the loss function.
+"""
 
 # %% [markdown] jupyter={"source_hidden": true}
 # > **Solution 01.2**
-# > 1. Compute $w \cdot x' + b$: We obtain `2`.
+# > 1. Compute $\omega \cdot x' + \beta$: We obtain `2`.
 # > 2. Apply the ReLU: We obtain `y'=2` again (2 is larger than 0 and hence $f_{ReLU}(x=2)=2$).
 # > 3. Compute the loss: $\mathcal{L}(y,y') = (y-y')^2 = (2 - 1.5)^2 = \frac{1}{4}$ 
 
 # %% [markdown]
 # # Supervised Learning
 #
-# Given a dataset $\mathcal{D} = \{\langle \vec{x}_i, y_i\rangle \dots \}$ with input data $x \in \mathbb{R}^n$ and labels $y \in \mathbb{R}^{2}$, we would like to train a model $f$ with parameters $\vartheta = \{ W^{I}, \vec{b}^{I}, W^{II}, \vec{b}^{II} \}$ such that:
+# Given a dataset $\mathcal{D} = \{\langle \vec{x}_i, y_i\rangle \dots \}$ with input data $x \in \mathbb{R}^n$ and labels $y \in \mathbb{R}^{2}$, we would like to train a model $f$ with parameters $\varphi = \{ \boldsymbol{\omega}^{I}, \vec{\beta}^{I}, \boldsymbol{\omega}^{II}, \vec{\beta}^{II} \}$ such that:
 #
-# $$ \vec{\hat{y}} = \hat{f}(\vec{x}|\vartheta) $$
+# $$ \vec{\hat{y}} = \hat{f}(\vec{x}|\varphi) $$
 #
-# To obtain a good estimate of $f$, we alter the weights of our model $\vartheta$. To do this, the optimisation is performed using a loss function $\mathcal{L}$ to obtain an optimal set of weights $\vartheta$ by minimizing $\mathcal{L}$:
+# To obtain a good estimate of $f$, we alter the weights of our model $\varphi$. To do this, the optimisation is performed using a loss function $\mathcal{L}$ to obtain an optimal set of weights $\varphi$ by minimizing $\mathcal{L}$:
 #
-# $$ \vartheta \approx \text{argmin}_{\vartheta} \mathcal{L}( \vec{y}, \vec{\hat{y}} = f(\vec{x} | \vartheta) ) $$.
+# $$ \varphi \approx \text{argmin}_{\varphi} \mathcal{L}( \vec{y}, \vec{\hat{y}} = f(\vec{x} | \varphi) ) $$.
 #
-# The optimisation is performed using [gradient descent](https://en.wikipedia.org/wiki/Gradient_descent). In this optimisation scheme, we update the parameters $\vartheta$ in a step-by-step fashion. After being randomly initialized, the parameters are updated at step $s$ using the weight update rule:
+# The optimisation is performed using [gradient descent](https://en.wikipedia.org/wiki/Gradient_descent). In this optimisation scheme, we update the parameters $\varphi$ in a step-by-step fashion. After being randomly initialized, the parameters are updated at step $s$ using the weight update rule:
 #
-# $$ \vartheta_{s+1} = \vartheta_{s} + \eta \nabla_{\vartheta} \mathcal{L}( \vec{y}, f(\vec{x}|\vartheta_{s})) $$
+# $$ \varphi_{t+1} = \varphi_{t} + \alpha \nabla_{\varphi} \mathcal{L}( \vec{y}, f(\vec{x}|\varphi_{s})) $$
 #
-# The above equation is called __weight update rule__. Here, the free parameter $\eta$ is also known as the __learning rate__.
+# The above equation is called __weight update rule__. Here, the free parameter $\alpha$ is also known as the __learning rate__.
 
 # %% [markdown]
 # ## Backpropagation
 #
-# The central part of gradient descent is how to obtain the value of $\nabla_{\vartheta}\mathcal{L}$. This is performed by applying the chain rule of differentiation from the back of the model to the front. For the sake of simplicity, let's say we only have part of a model: $f'(x|\vartheta) = w \cdot x + b = \hat{y}$. To compute the gradient of this simple model $f'$, we have to start from the loss function $\mathcal{L}(y,\hat{y})= (y-\hat{y})^2$:
+# The central part of gradient descent is how to obtain the value of $\nabla_{\varphi}\mathcal{L}$. This is performed by applying the chain rule of differentiation from the back of the model to the front. For the sake of simplicity, let's say we only have part of a model: $f'(x|\varphi) = \omega \cdot x + \beta = \hat{y}$. To compute the gradient of this simple model $f'$, we have to start from the loss function $\mathcal{L}(y,\hat{y})= (y-\hat{y})^2$:
 #
-# $$ \nabla \mathcal{L} = \frac{\partial\mathcal{L}}{\partial\vartheta} $$
+# $$ \nabla \mathcal{L} = \frac{\partial\mathcal{L}}{\partial\varphi} $$
 #
 # The gradient $\nabla$ is calculated for each weight or bias term independently (as they are also used independently during the forward pass).
 #
-# $$ \nabla_w \mathcal{L} = \frac{\partial\mathcal{L}}{\partial w} $$
+# $$ \nabla_w \mathcal{L} = \frac{\partial\mathcal{L}}{\partial \omega} $$
 #
 # We can now go forward and apply the chain rule to the differential above:
 #
-# $$ \nabla_w \mathcal{L} = \frac{\partial\mathcal{L}}{\partial w} = \frac{\partial\mathcal{L}}{\partial \hat{y}}\frac{\partial \hat{y}}{\partial w}$$
+# $$ \nabla_w \mathcal{L} = \frac{\partial\mathcal{L}}{\partial \omega} = \frac{\partial\mathcal{L}}{\partial \hat{y}}\frac{\partial \hat{y}}{\partial \omega}$$
 #
 # We can now move forward and evaluate each term of the chain rule expression:
 #
 # $$ \frac{\partial\mathcal{L}}{\partial \hat{y}} = \frac{\partial (y-\hat{y})^2}{\partial \hat{y}} = 2\cdot(y-\hat{y})\cdot(-1)$$
-# $$ \frac{\partial \hat{y}}{\partial w} = \frac{\partial (w \cdot x + b)}{\partial w} = x $$
+# $$ \frac{\partial \hat{y}}{\partial \omega} = \frac{\partial (\omega \cdot x + \beta)}{\partial \omega} = x $$
 #
 # If we now want to compute the value of the gradient, we would have to input concrete numbers to finally apply the weight update rule.
 
 # %% [markdown]
-# **Exercise 01.3**
-#
-# Take pen and paper or a digital equivalent. Compute the gradient for $b$, $\nabla_b \mathcal{L}$ of our stub model $f'$!
+r"""
+**Exercise 01.3**
+
+Take pen and paper or a digital equivalent. Compute the gradient for $\beta$, $\nabla_\beta \mathcal{L}$ of our stub model $f'$!
+"""
 
 # %% [markdown] jupyter={"source_hidden": true}
-# > **Solution 01.3**
-# > 1. Apply the chain rule to our stub network:
-# > $$\frac{\partial\mathcal{L}}{\partial b} = \frac{\partial\mathcal{L}}{\partial \hat{y}}\frac{\partial \hat{y}}{\partial b}$$
-# > 2. Evaluate each subterm:
-# > $$ \frac{\partial\mathcal{L}}{\partial \hat{y}} = \frac{\partial (y-\hat{y})^2}{\partial \hat{y}} = 2\cdot(y-\hat{y})\cdot(-1)$$
-# > $$ \frac{\partial \hat{y}}{\partial b} = \frac{\partial (w \cdot x + b)}{\partial b} = 1 $$
-# > 3. Put everything together:
-# > $$ \nabla_b \mathcal{L} = \frac{\partial\mathcal{L}}{\partial \hat{y}}\frac{\partial \hat{y}}{\partial b} = 2\cdot(y-\hat{y})\cdot(-1) \cdot 1 = -2\cdot(y-\hat{y})$$
+r"""
+> **Solution 01.3**
+> 1. Apply the chain rule to our stub network:
+> $$\frac{\partial\mathcal{L}}{\partial \beta} = \frac{\partial\mathcal{L}}{\partial \hat{y}}\frac{\partial \hat{y}}{\partial \beta}$$
+> 2. Evaluate each subterm:
+> $$ \frac{\partial\mathcal{L}}{\partial \hat{y}} = \frac{\partial (y-\hat{y})^2}{\partial \hat{y}} = 2\cdot(y-\hat{y})\cdot(-1)$$
+> $$ \frac{\partial \hat{y}}{\partial \beta} = \frac{\partial (\omega \cdot x + \beta)}{\partial \beta} = 1 $$
+> 3. Put everything together:
+> $$ \nabla_{\beta} \mathcal{L} = \frac{\partial\mathcal{L}}{\partial \hat{y}}\frac{\partial \hat{y}}{\partial \beta} = 2\cdot(y-\hat{y})\cdot(-1) \cdot 1 = -2\cdot(y-\hat{y})$$
+"""
 
 # %% [markdown]
 # ## Putting it all together
@@ -164,11 +178,11 @@
 # **Exercise 01.4**
 #
 # Groups:
-# 1. $x=2$, $w_0=4$, $b_0=2$, $w_1=.75$, $b_1=.5$, $y=5$
-# 2. $x=2$, $w_0=2$, $b_0=.25$, $w_1=5$, $b_1=0$, $y=5$
-# 3. $x=2$, $w_0=-4$, $b_0=2$, $w_1=.75$, $b_1=-.5$, $y=5$
-# 4. $x=2$, $w_0=2$, $b_0=-.25$, $w_1=-5$, $b_1=0$, $y=5$
-# 5. $x=2$, $w_0=1$, $b_0=1$, $w_1=1$, $b_1=1$, $y=5$
+# 1. $x=2$, $\omega_0=4$, $\beta_0=2$, $\omega_1=.75$, $\beta_1=.5$, $y=5$
+# 2. $x=2$, $\omega_0=2$, $\beta_0=.25$, $\omega_1=5$, $\beta_1=0$, $y=5$
+# 3. $x=2$, $\omega_0=-4$, $\beta_0=2$, $\omega_1=.75$, $\beta_1=-.5$, $y=5$
+# 4. $x=2$, $\omega_0=2$, $\beta_0=-.25$, $\omega_1=-5$, $\beta_1=0$, $y=5$
+# 5. $x=2$, $\omega_0=1$, $\beta_0=1$, $\omega_1=1$, $\beta_1=1$, $y=5$
 
 # %% [markdown]
 # # Pytorch

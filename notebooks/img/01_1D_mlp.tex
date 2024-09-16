@@ -14,7 +14,7 @@
 \begin{tikzpicture}[shorten >=1pt,node distance=3cm,auto]
    
    \node[ultra thick, draw, circle] (input) {Input $x$};
-   \node[ultra thick, draw, ellipse] (hidden) [right of=input] {$\sigma(w \cdot x + b)$};
+   \node[ultra thick, draw, ellipse] (hidden) [right of=input] {$\sigma(\omega \cdot x + \beta)$};
    \node[ultra thick, draw, circle] (output) [right of=hidden] {Output $o$};
    \node[ultra thick, draw, rectangle, minimum width=2.5cm] (loss) [right of=output] {$\mathcal{L}(y, \hat{y})$};
 

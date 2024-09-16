@@ -19,13 +19,13 @@
  $x_{#1}$
 }
 \providecommand{\hidlText}[1]{
- {$H_{#1} = \sum_{j} W^{I}_{j#1} \cdot x_{j} + b^{I}_{#1}$}%
+ {$H_{#1} = \sum_{j} \mathbf{\omega}^{I}_{j#1} \cdot x_{j} + \beta^{I}_{#1}$}%
 }
 \providecommand{\hidrText}[1]{
  {$h_{#1}=\sigma_{relu}(H_{#1})$}%
 }
 \providecommand{\outlText}[1]{
- {$y'_{#1} = \sum_{j} W^{II}_{j#1} \cdot h_{j} + b^{II}_{#1}$}%
+ {$y'_{#1} = \sum_{j} \mathbf{\omega}^{II}_{j#1} \cdot h_{j} + \beta^{II}_{#1}$}%
 }
 
 \providecommand{\outrText}[1]{
