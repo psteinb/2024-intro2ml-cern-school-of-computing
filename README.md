@@ -4,7 +4,7 @@ https://indico.cern.ch/event/1376644/
 
 ## Installation Instructions
 
-Some dependencies are rather hard to install for this workflow. The `requirements.txt` was tested with python `3.11`. Python `3.12` works sometimes but not in a reproducible manner.
+Some dependencies are rather hard to install for this workflow. The `requirements.txt` was tested with python `3.12`. 
 
 1. create a `venv` by `python -m venv py311 --upgrade-deps`
 2. setup that `venv` by `source py311/bin/activate`
@@ -19,3 +19,7 @@ or without `uv`:
 ```shell
 python -m pip install --extra-index-url https://download.pytorch.org/whl/cpu torch
 ```
+
+## Usage on SWAN
+
+TODO
