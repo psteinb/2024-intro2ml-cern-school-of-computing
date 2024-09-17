@@ -273,7 +273,7 @@ print(f"autoencoder is ready to train!")
 
 # %% [markdown]
 """
-## **Exercise 03.1** MLPs for an autoencoder
+## **Exercise 04.1** MLPs for an autoencoder
 
 We have so far built up our autoencoder with convolutional operations only. The same can be done with `torch.nn.Linear` layers only. **Please code an encoder and decoder that only require the use of `torch.nn.Linear` layers!** Keep the signature of the `self.__init__` methods the same.
 """
@@ -473,7 +473,7 @@ If you try the last cell with different values for `index` you will also see tha
 
 # %% [markdown]
 """
-## **Exercise 03.2** MLPs for an autoencoder for good
+## **Exercise 04.2** MLPs for an autoencoder for good
 
 Rewrite the MyAutoencoder class to use the encoder/decoder classes which employ `torch.nn.Linear` layers only. Rerun the training with them! Do you observe a difference in the reconstruction?
 """
