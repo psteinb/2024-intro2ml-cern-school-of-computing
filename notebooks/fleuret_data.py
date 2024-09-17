@@ -149,7 +149,7 @@ def save_sequence_images(
     ax = fig.add_subplot(1, 1, 1)
 
     ax.set_xlim(0, seq_length)
-    ax.set_ylim(-1, seq_height_max + 4)
+    ax.set_ylim(-0.1, seq_height_max)
 
     for u in sequences:
         ax.plot(np.arange(u[0].shape[0]) + 0.5, u[0], color=u[1], label=u[2])

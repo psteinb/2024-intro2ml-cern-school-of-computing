@@ -44,18 +44,19 @@ In the following, we again look at a regression task. The functions below produc
 import matplotlib.pyplot as plt
 import numpy as np
 
-from fleuret_data import generate_sequences
+from fleuret_data import generate_sequences, save_sequence_images
 
 drng = np.random.default_rng(43)  # set the RNG seed for reproducible runs
 
 
 # %%
 # create train and test set
+seq_length=64
 train_input, train_targets, train_tr, train_bx = generate_sequences(
-    12000, seq_length=64, rng=drng
+    12000, seq_length=seq_length, rng=drng
 )
 test_input, test_targets, test_tr, test_bx = generate_sequences(
-    1000, seq_length=64, rng=drng
+    1000, seq_length=seq_length, rng=drng
 )
 
 # %%
@@ -164,7 +165,7 @@ def nparams(model):
 # %%
 # test our model
 
-plainfcn = RegressionFCN(x_.shape[-2:], num_channels=32)
+plainfcn = RegressionFCN(x_.shape[-2:], num_channels=64)
 print(plainfcn)
 first_x, first_y = next(iter(train_loader))
 output = plainfcn(first_x)
@@ -359,6 +360,7 @@ class CustomAttn(torch.nn.Module):
 
         self.layers = torch.nn.Sequential()
         num_inchannels = inshape[0]
+        self.num_channels = num_channels
         padding = ksize // 2
         self.layers.append(
                 torch.nn.Conv1d(num_inchannels, num_channels, ksize,stride=1,padding=padding )
@@ -387,7 +389,7 @@ class CustomAttn(torch.nn.Module):
         return self.layers(x)
 
 
-attmodel = CustomAttn(x_test_.shape[1:], num_channels=40)
+attmodel = CustomAttn(x_test_.shape[1:], num_channels=64)
 output = attmodel(first_x)
 assert output.shape == first_y.shape
 print(attmodel)
@@ -398,10 +400,6 @@ attoptim = torch.optim.AdamW(attmodel.parameters(), lr=1e-3)
 attcrit  = torch.nn.MSELoss()
 max_epochs = 15
 attresults = train_regression(attmodel, attoptim, attcrit, train_loader, test_loader, max_epochs,2)
-
-# chistory = cmodel.fit(
-#     x, y, validation_data=(x_test, y_test), batch_size=128, epochs=10, verbose=1
-# )
 
 # %%
 f,ax = plot_history(attresults)
@@ -414,150 +412,48 @@ f.savefig("attention_attmodel_losses.svg")
 The idea of attention was published in 2014 by A. Graves in "Neural Turing Machines", see [here](https://arxiv.org/abs/1410.5401)
 It was picked up again in 2017 by A. Vaswani et al in "Attention is all you need", see [here](https://arxiv.org/abs/1706.03762). This paper coined the term Transformer model which relies strongly on self-attention layers.
 A nice visualizer to help you grasp the idea of attention can be found [here](https://poloclub.github.io/transformer-explainer/).
+
+Next, we want to visualize some of the attention maps and check if the model has truly grasped long range dependencies.
 """
 
 # %%
+# obtain attention maps
 
-class FleuretAttentionLayer(torch.nn.Module):
-    def __init__(self, in_channels, out_channels, key_channels):
-        super().__init__()
-        self.conv_Q = torch.nn.Conv1d(in_channels, key_channels, kernel_size=1, bias=False)
-        self.conv_K = torch.nn.Conv1d(in_channels, key_channels, kernel_size=1, bias=False)
-        self.conv_V = torch.nn.Conv1d(in_channels, out_channels, kernel_size=1, bias=False)
+test_input, test_targets = torch.from_numpy(x_test_[:32,...]), torch.from_numpy(y_test_[:32,...])
+test_outputs = attmodel(test_input)
+ctest_outputs = plainfcn(test_input)
 
-    def forward(self, x):
-        Q = self.conv_Q(x)
-        K = self.conv_K(x)
-        V = self.conv_V(x)
-        # this einsum does matmul(Q.T, K) before the softmax
-        A = torch.einsum("nct,ncs->nts", Q, K).softmax(2)
-        # this einsum does matmul(A,V.T).T
-        y = torch.einsum("nts,ncs->nct", A, V)
-        return y
+k = next(k for k, l in enumerate(attmodel.layers) if isinstance(l, SelfAttention))
+Y_test_hat = attmodel.layers[0:k](test_input)
+test_attention = attmodel.layers[k].attention(Y_test_hat)
+test_attention = test_attention.detach().cpu()
 
-    def __repr__(self):
-        return (
-            self._get_name()
-            + "(in_channels={}, out_channels={}, key_channels={})".format(
-                self.conv_Q.in_channels,
-                self.conv_V.out_channels,
-                self.conv_K.out_channels,
-            )
-        )
+test_input = test_input.detach().cpu()
+test_outputs = test_outputs.detach().cpu()
+ctest_outputs = ctest_outputs.detach().cpu()
+test_targets = test_targets.detach().cpu()
 
-    def attention(self, x):
-        Q = self.conv_Q(x)
-        K = self.conv_K(x)
-        A = torch.einsum("nct,ncs->nts", Q, K).softmax(2)
-        return A
+# for the correct plot fo attention, we need to adapt to scaling issues
+size_scale = attmodel.num_channels / seq_length
 
+# plot outputs and attention maps
+for k in range(15):
+    save_sequence_images(
+        f"attention_attmodel_test_Y_{k:03.0f}.svg",
+        [
+            (test_input[k, 0], "blue", "Input"),
+            (test_outputs[k, 0], "orange", "Output"),
+        ],
+        seq_length=seq_length,
+        seq_height_max=1.
+    )
 
-class CustomFleuretAttn(torch.nn.Module):
-
-    def __init__(self, inshape=x_test_.shape[-2:], num_channels=16, ksize=5):
-
-        super().__init__()
-
-        self.layers = torch.nn.Sequential()
-        num_inchannels = inshape[0]
-        padding = ksize // 2
-        self.layers.append(
-                torch.nn.Conv1d(num_inchannels, num_channels, ksize,stride=1,padding=padding )
-            )
-        self.layers.append(
-                torch.nn.ReLU()
-        )
-        self.layers.append(
-                torch.nn.Conv1d(num_channels, num_channels, ksize,stride=1,padding=padding )
-            )
-        self.layers.append(
-                torch.nn.ReLU()
-        )
-        self.layers.append(
-                FleuretAttentionLayer(num_channels,num_channels,num_channels)
-        )
-        self.layers.append(
-            torch.nn.Conv1d(num_channels, num_channels, ksize,stride=1,padding=padding )
-        )
-        self.layers.append(
-            torch.nn.Conv1d(num_channels, num_inchannels, 1,stride=1,padding=0 )
-        )
-
-    def forward(self, x):
-
-        return self.layers(x)
-
-
-fattmodel = CustomFleuretAttn(x_test_.shape[1:], num_channels=40)
-output = fattmodel(first_x)
-assert output.shape == first_y.shape
-print(fattmodel)
-print(f"set up fleuret attention model with {nparams(fattmodel)} parameters")
-
-# %%
-fattoptim = torch.optim.AdamW(fattmodel.parameters(), lr=1e-3)
-fattcrit  = torch.nn.MSELoss()
-max_epochs = 15
-attresults = train_regression(fattmodel, fattoptim, fattcrit, train_loader, test_loader, max_epochs,2)
-
-# %%
-f,ax = plot_history(attresults)
-f.savefig("attention_fattmodel_losses.svg")
-
-# # We reuse the model idea from above
-# def create_attn(inshape=x.shape[-2:], channels=64, ksize=5):
-#     "a fully convolutional network (fcn) to regress the signal using selfattention from keras"
-
-#     inputs = keras.layers.Input(shape=inshape)
-#     x = keras.layers.Conv1D(
-#         channels, ksize, strides=1, padding="same", activation="relu"
-#     )(inputs)
-#     x = keras.layers.Conv1D(
-#         channels, ksize, strides=1, padding="same", activation="relu"
-#     )(x)
-#     # TODO: Keras also has a built-in Attention Layer, find it
-#     #       and use in in similar fashion as our own custom attention above
-#     #       (note, we want to use one attention head)
-# ...
-# ...
-# ...
-# ...
-# ...
-#     x = keras.layers.Conv1D(
-#         channels, ksize, strides=1, padding="same", activation="relu"
-#     )(x)
-#     outputs = keras.layers.Conv1D(1, ksize, strides=1, padding="same")(x)
-
-#     return keras.Model(
-#         inputs=inputs, outputs=outputs, name="fcn-regression-selfattention"
-#     )
-
-
-# # %%
-
-# amodel = create_attn(x.shape[1:])
-# amodel.summary()  # a simple model
-
-# # %% [markdown]
-# # The keras built-in attention layer uses Linear layers internally. This gives rise to the large number of parameters in the multi-head attention layer above even though we only want to use 1 head.
-# #
-# # Let's compile the model and see the effect of this change.
-
-# # %%
-# amodel.compile(optimizer="adam", loss=keras.losses.MeanSquaredError())
-
-# # %%
-# ahistory = amodel.fit(
-#     x, y, validation_data=(x_test, y_test), batch_size=128, epochs=15, verbose=1
-# )
-
-
-# # %% [markdown]
-# # -
-
-# # %%
-# plot_histories(
-#     [history, ahistory, chistory],
-#     ["loss", "val_loss"],
-#     "vanilla,self-attention, custom-attention".split(","),
-# )
+    save_sequence_images(
+        f"attention_fcnmodel_test_Y_{k:03.0f}.svg",
+        [
+            (test_input[k, 0], "blue", "Input"),
+            (ctest_outputs[k, 0], "orange", "Output"),
+        ],
+        seq_length=seq_length,
+        seq_height_max=1.
+    )
