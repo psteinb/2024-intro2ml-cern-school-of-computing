@@ -20,13 +20,13 @@
  $x_{#1}$
 }
 \providecommand{\hidlText}[1]{
- {$H_{#1} = \sum_{j} \mathbf{\omega}^{I}_{j#1} \cdot x_{j} + \beta^{I}_{#1}$}%
+ {$H_{#1} = \sum_{j} \mathbf{\omega}^{I}_{#1 j} \cdot x_{j} + \beta^{I}_{#1}$}%
 }
 \providecommand{\hidrText}[1]{
  {$h_{#1}=\sigma_{relu}(H_{#1})$}%
 }
 \providecommand{\outlText}[1]{
- {$y'_{#1} = \sum_{j} \mathbf{\omega}^{II}_{j#1} \cdot h_{j} + \beta^{II}_{#1}$}%
+ {$y'_{#1} = \sum_{j} \mathbf{\omega}^{II}_{#1 j} \cdot h_{j} + \beta^{II}_{#1}$}%
 }
 
 \providecommand{\outrText}[1]{
@@ -103,13 +103,13 @@
   
   \foreach \a in {0,...,2} {
    \foreach \s in {0,...,2} {
-    \draw (in \a) -- (hid \s) node[synapseNodeMy] {\synapseIHText{\a}{\s}
+    \draw (in \a) -- (hid \s) node[synapseNodeMy] {\synapseIHText{\s}{\a}
     };
    }}
 
   \foreach \a in {0,...,2} {
    \foreach \s in {0,...,1} {
-    \draw (rel \a) -- (outl \s) node[synapseNodeMy] {\synapseHOText{\a}{\s}
+    \draw (rel \a) -- (outl \s) node[synapseNodeMy] {\synapseHOText{\s}{\a}
     };
    }}
 
