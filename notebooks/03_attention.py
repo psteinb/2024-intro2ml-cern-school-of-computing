@@ -26,14 +26,24 @@
 """
 # Exploring a reweighting task
 
-The following material is taken from the excellent lectures of Francois Fleuret (Univeristy of Geneva). Francois Fleuret introduces the self-attention mechanism in three parts: [first](https://fleuret.org/dlc/streaming/dlc-video-13-1-attention-memory-translation.mp4), [second](https://fleuret.org/dlc/streaming/dlc-video-13-2-attention-mechanisms.mp4) and [third](https://fleuret.org/dlc/streaming/dlc-video-13-3-transformers.mp4) - all of which are worthwhile watching. I have asked permission of Francois to reuse some of his material.
+The following material is taken from the excellent lectures of Francois Fleuret (Univeristy of Geneva). Francois Fleuret introduces the self-attention mechanism and the transformer architecure in three parts:
+
+- [first stream](https://fleuret.org/dlc/streaming/dlc-video-13-1-attention-memory-translation.mp4),
+- [second stream](https://fleuret.org/dlc/streaming/dlc-video-13-2-attention-mechanisms.mp4) and
+- [third](https://fleuret.org/dlc/streaming/dlc-video-13-3-transformers.mp4)
+
+all of which are worthwhile watching. For more details, checkout the [website](https://fleuret.org/dlc/) of his lecture series.
+
+I have asked permission of Francois to reuse some this material which was published under the Public Domain.
 """
 
 # %% [markdown]
 r"""
 ## A regression task
 
-In the following, we again look at a regression task. The functions below produce a dataset which can be used to illustrate the use of the attention mechanism. The dataset exhibits 2 triangles and 2 boxes/rectangles on a 1D line. In this notebook, we focus on
+In the following, we again look at a regression task. The functions below produce a dataset which can be used to illustrate the use of the self-attention mechanism. The dataset exhibits two triangles and two boxes/rectangles on a 1D line. The dataset purely serves didactical purposes and only has loose connections to language processing.
+
+In this notebook, we focus on
 
 1. exploring the data set with a standard convnet.
 2. preparing a network using the attention mechanism
@@ -75,7 +85,7 @@ ax[0].set_title("input")
 ax[1].plot(
     np.arange(test_targets[0].shape[-1]) + 0.5,
     test_targets[0].squeeze(),
-    color="red",
+    color="green",
     label="target",
 )
 ax[1].set_title("target")
@@ -83,14 +93,14 @@ fig.savefig("attention_dataset.svg")
 
 # %% [markdown]
 """
-You see two kinds of "objects" in the signal plotted above: two box-like structures and two triangle-like structure. We now define a **regression task** which is meant to equalize the height of the boxes (new height should be the average height of the two input boxes) and the height of the triangles (new height of the triangles should be the mean of the two input triangles).
+You see two kinds of "objects" in the plots above: two box-like structures and two triangle-like structure. We now define a **regression task** which is meant to equalize the height of the boxes. The new height of the output boxes should be the mean height of the two input boxes, The height of the output triangles should be the mean of the two input triangles).
 """
 
 # %% [markdown]
 r"""
 ## Convolutional Network
 
-First, we need to normalize the data into a dynamic range as $\vec{x} \in [0,1]$. Then, we like to create a regression model using convolutions only, which tries to accomplish the task above.
+First, we need to normalize the data into a dynamic range as $\vec{x} \in [0,1]$. Then, we create a regression model using convolutions only, which tries to accomplish the task above.
 
 ### Data Normalisation
 """
@@ -102,10 +112,10 @@ np.random.seed(41)
 torch.random.manual_seed(43)
 
 # %%
-# normalize the signal, zscale if required
+# normalize the signal, zscale normalisation commented out for experimentation
 x_min, x_max = train_input.min(), train_input.max()
-loc = x_min #np.mean(train_input)
-scale = x_max - x_min #np.std(train_input)
+loc = x_min  # np.mean(train_input)
+scale = x_max - x_min  # np.std(train_input)
 x_ = (train_input - loc) / scale
 
 y_min, y_max = train_targets.min(), train_targets.max()
@@ -123,9 +133,59 @@ print(f"data shape check: {x_.shape, y_.shape, x_test_.shape, y_test_.shape}")
 ### A fully convolutional model
 
 The term fully convolutional describes an architecture which consists exclusively of convolutional operations. This has the benefit as the model design is independent of the input data shape.
+
+** Exercise 03.1 **
+
+The code for the fully convolutional model is almost ready, but some minor mistakes and blanks have been introduced. Check if you can fix these errors so that a model of the following form would be printed without errors.
+
+```
+> print(RegressionFCN((1,seq_length), num_channels=64))
+RegressionFCN(
+  (layers): Sequential(
+    (0): Conv1d(1, 64, kernel_size=(5,), stride=(1,), padding=(2,))
+    (1): ReLU()
+    (2): Conv1d(64, 64, kernel_size=(5,), stride=(1,), padding=(2,))
+    (3): ReLU()
+    (4): Conv1d(64, 64, kernel_size=(5,), stride=(1,), padding=(2,))
+    (5): ReLU()
+    (6): Conv1d(64, 64, kernel_size=(5,), stride=(1,), padding=(2,))
+    (7): ReLU()
+    (8): Conv1d(64, 1, kernel_size=(1,), stride=(1,))
+  )
+)
+```
 """
 
 # %%
+class RegressionFCN(torch.nn.ModuleList):
+
+    def __init__(self, inshape, num_channels=64, ksize=5, num_layers=4):
+        ...
+
+        self.layers = torch.nn.Sequential()
+        num_inchannels = inshape[0]
+        padding = ...
+        for _ in range(8):
+            self.layers.append(
+                torch.nn.Conv1d(num_inchannels,
+                                num_channels,
+                                ksize,
+                                stride=...,
+                                padding=padding )
+            )
+            self.layers.append(
+                ...
+            )
+            num_inchannels = num_channels
+        self.layers.append(torch.nn.Conv1d(num_channels, inshape[0], 1))
+
+    def forward(self, x):
+
+        return self.layers(x)
+
+
+# %% jupyter={"source_hidden": true}
+# Solution for Exercise 03.1
 class RegressionFCN(torch.nn.Module):
 
     def __init__(self, inshape, num_channels=64, ksize=5, num_layers=4):
@@ -163,7 +223,7 @@ def nparams(model):
     return sum(p.numel() for p in model.parameters())
 
 # %%
-# test our model
+# we test our model
 
 plainfcn = RegressionFCN(x_.shape[-2:], num_channels=64)
 print(plainfcn)
@@ -227,7 +287,7 @@ max_epochs = 15
 fcnresults = train_regression(plainfcn, optim, crit, train_loader, test_loader, max_epochs,2)
 
 # %%
-
+# let's make our lives a bit easier
 def plot_history(history, metrics=["train_losses", "test_losses"], metric_label="metric", draw_legend=True):
     """
     Plot the training history
@@ -249,7 +309,7 @@ def plot_history(history, metrics=["train_losses", "test_losses"], metric_label=
 
 # %%
 f,ax = plot_history(fcnresults)
-f.savefig("attention_plainfcn_losses.svg")
+f.savefig("attention_fcnmodel_losses.svg")
 
 
 # # %%
@@ -274,19 +334,167 @@ for col in range(5):
 f.savefig("attention_plainfcn_pred5.svg")
 
 # %% [markdown]
-"""
-# The above is not a great model, actually it doesn't work at all! But we expected no less as the test loss didn't decrease any further than `0.0085` while the training loss decreased further and further.
+r"""
+The above is not a great model, actually it doesn't really well! But we expected no less as the test loss didn't decrease any further than `0.0085` while the training loss decreased further and further.
 """
 
 # %% [markdown]
 """
-# Your own Attention Layer
+# Attention is all you need
 
 Attention and self-attention are very powerful transformations. In this section, we will write our own Attention layer.
+
+The idea of attention was published in 2014 by A. Graves in "Neural Turing Machines", see [here](https://arxiv.org/abs/1410.5401)
+It was picked up again in 2017 by A. Vaswani et al in "Attention is all you need", see [here](https://arxiv.org/abs/1706.03762). This paper coined the term Transformer architecture which relies strongly on self-attention layers. This architecture proved very successful in the language processing domain. Today, all large language models rely on the attention mechanism.
+
+A nice visualizer to help you grasp the idea of attention can be found [here](https://poloclub.github.io/transformer-explainer/).
+
+Even though, we will not do any language processing here, the dataset and task at hand is enough to demonstrate the effectiveness, by which attention can capture long-range dependencies in the data.
+"""
+
+# %% [markdown]
+r"""
+## Attention
+
+The attention mechanism relies on three ingredients. But in our example task, we only have the incoming feature maps from a convolution. So we will model a triple bifurcation of the incoming data.
+
+We first create queries, keys and value tensors, but applying a convolution on our input `x`. In practice, this is often done with linear layers, but for the sake of argument and processing speed (on weaker hardware) we pick convolutions.
+
+$$ \mathbf{Q} = conv(\vec{x}), \mathbf{K} = conv(\vec{x}), \mathbf{V} = conv(\vec{x}) $$
+
+We want to construct the convolutions in such a fashion, that $\mathbf{Q}\in\mathbb{R}^{TxD}$ where $T$ is an arbitrary dimension we can set and $D$ is the length of our sequence.
+
+We further want $\mathbf{K}\in\mathbb{R}^{T'xD}$ where $T'$ is an arbitrary dimension we can set and $D$ is again the length of our sequence.
+
+Last, we also want $\mathbf{V}\in\mathbb{R}^{T'xD'}$ where $T'$ is the same value as for $\mathbf{K}$ and $D'$ is for the sake of the example equal to $D$.
+
+** Exercise 03.2 **
+
+Write a `torch.nn.Module` which fulfills the requirements above. Feel free to start from this template below:
+``` python
+
+class SelfAttention(torch.nn.Module):
+    def __init__(
+        self,
+        in_channels: int,
+        query_channels: int,
+        key_channels: int,
+        out_dimension: int = 0,
+    ):
+        '''
+
+        constructor to set up self-attention module
+
+        Parameters
+        ----------
+        in_channels :
+            depend on the data
+        query_channels :
+            equivalent to T
+        key_channels :
+            equivalent to T_prime
+        out_dimension :
+            equivalent to D_prime, not needed here
+        '''
+        super().__init__()
+
+        # we want to establish queries Q, keys K and values V
+        # instead of using Linear layers, we opt for Conv1D as they use less
+        # parameters and hence are less memory intensive
+        ...
+
+    def forward(self, x):
+        ...
+
+```
+"""
+
+# %% [markdown]
+r"""
+The actual attention mechanism is two lines of math, but it may take a while to digest it. We start from considering the fact, that we have three matrices now: $\mathbf{Q},\mathbf{K},\mathbf{V}$.
+
+We first need to calculate paired distances:
+
+$$ \mathbf{A}' = \frac{QK^{T}}{\sqrt{D}} $$
+
+The attention map in our case computes a paired dot-product between all rows in $\mathbf{Q}$ and all rows in $\mathbf{K}$ (i.e. all columns in $K^{T}$. In other words, we compute all n-to-n distances of vectors in either matrix. Note, the normalisation by $\sqrt{D}$ is injected for numerical stability according to the authors.
+
+To make these meaningful, the attention map is completed by a row-wise application of the softmax function:
+
+$$ \mathbf{A} = softmax_{row}(\mathbf{A}') = softmax_{row}(\frac{QK^{T}}{\sqrt{D}}) $$
+
+To finish up, we obtain the output of attention by weighting the attention map with $\mathbf{V}$.
+
+$$ \mathbf{Y} = \mathbf{A}\mathbf{V} $$
+
+The matrix $\mathbf{Y}$ is the output of our Attention layer. Note, this operation is called self-attention only if $\mathbf{V}$ were obtained from the same input as $\mathbf{Q}$ and $\mathbf{K}$.
+"""
+
+# %% [markdown]
+r"""
+** Exercise 03.3 **
+
+Given the formulae above, reuse the SelfAttention class that you already started and complete it! Use the following template as a guide:
 """
 
 # %%
+class SelfAttention(torch.nn.Module):
+    def __init__(
+        self,
+        in_channels: int,
+        query_channels: int,
+        key_channels: int,
+        out_dimension: int = 0,
+    ):
+        """
 
+        constructor to set up self-attention module
+
+        Parameters
+        ----------
+        in_channels :
+            depend on the data
+        query_channels :
+            equivalent to T
+        key_channels :
+            equivalent to T_prime
+        out_dimension :
+            equivalent to D_prime, not needed here
+        """
+        super().__init__()
+
+        # we want to establish queries Q, keys K and values V
+        # instead of using Linear layers, we opt for Conv1D as they use less
+        # parameters and hence are less memory intensive
+        self.conv_Q = torch.nn.Conv1d(
+            in_channels, query_channels, kernel_size=1, bias=False
+        )
+        self.conv_K = torch.nn.Conv1d(
+            in_channels, key_channels, kernel_size=1, bias=False
+        )
+        self.conv_V = torch.nn.Conv1d(
+            in_channels, key_channels, kernel_size=1, bias=False
+        )
+
+    def forward(self, x):
+        # we receive a NxCxD tensor x
+
+        # run the convolutions on our inputs
+        Q = self.conv_Q(x)  # produces a NxTxD tensor
+        K = self.conv_K(x)  # produces a NxT_primexD tensor
+        V = self.conv_V(x)  # produces a NxT_primexD tensor as D_prime = D
+
+        K_t = ...  # transpose K to give a NxDxT_prime matrix
+        A_ = ...  # perform a matrix multiply Q*K_t, results in a NxTxT_prime matrix
+        A = ...  # perform a row-wise softmax, results in a NxTxT_prime matrix
+
+        y = ...  # perform a matrix multiply A*Y, results in TxT_prime * T_primexD = TxD matrix
+
+        return y
+
+
+# %% jupyter={"source_hidden": true}
+# *Solution 03.3*
 class SelfAttention(torch.nn.Module):
     def __init__(
         self,
@@ -341,17 +549,10 @@ class SelfAttention(torch.nn.Module):
 
         return y
 
-    def attention(self, x):
-        Q = self.conv_Q(x)
-        K = self.conv_K(x)
-
-        K_t = torch.transpose(K, -1, -2)  # convert to NxDxT_prime
-        A_ = torch.matmul(Q, K_t)  # results in NxTxT_prime
-
-        return torch.nn.functional.softmax(A_, dim=2)
 
 
 # %%
+# now we want to include that into a model
 class CustomAttn(torch.nn.Module):
 
     def __init__(self, inshape=x_test_.shape[-2:], num_channels=64, ksize=5):
@@ -388,7 +589,7 @@ class CustomAttn(torch.nn.Module):
 
         return self.layers(x)
 
-
+# test our model
 attmodel = CustomAttn(x_test_.shape[1:], num_channels=64)
 output = attmodel(first_x)
 assert output.shape == first_y.shape
@@ -396,6 +597,7 @@ print(attmodel)
 print(f"set up custom attention model with {nparams(attmodel)} parameters")
 
 # %%
+# train the model
 attoptim = torch.optim.AdamW(attmodel.parameters(), lr=1e-3)
 attcrit  = torch.nn.MSELoss()
 max_epochs = 15
@@ -407,27 +609,21 @@ f.savefig("attention_attmodel_losses.svg")
 
 # %% [markdown]
 """
-## Create a model with attention
+## Have a look at the results
 
-The idea of attention was published in 2014 by A. Graves in "Neural Turing Machines", see [here](https://arxiv.org/abs/1410.5401)
-It was picked up again in 2017 by A. Vaswani et al in "Attention is all you need", see [here](https://arxiv.org/abs/1706.03762). This paper coined the term Transformer model which relies strongly on self-attention layers.
-A nice visualizer to help you grasp the idea of attention can be found [here](https://poloclub.github.io/transformer-explainer/).
+In the loss curve above, you see that the attention based model draws much quicker to `0` in the training set than what the FCN above could do. This trend will increase, the longer you train. The interesting observation here is that both models have the same amount of parameters. Hence, the attention mechanism must bring more flexibility along to model the data.
 
-Next, we want to visualize some of the attention maps and check if the model has truly grasped long range dependencies.
+Next, we want to visualize some output sequences and check if the model has truly grasped long range dependencies.
 """
 
 # %%
-# obtain attention maps
+# obtain predictions
 
 test_input, test_targets = torch.from_numpy(x_test_[:32,...]), torch.from_numpy(y_test_[:32,...])
 test_outputs = attmodel(test_input)
 ctest_outputs = plainfcn(test_input)
 
-k = next(k for k, l in enumerate(attmodel.layers) if isinstance(l, SelfAttention))
-Y_test_hat = attmodel.layers[0:k](test_input)
-test_attention = attmodel.layers[k].attention(Y_test_hat)
-test_attention = test_attention.detach().cpu()
-
+# required for easier plotting
 test_input = test_input.detach().cpu()
 test_outputs = test_outputs.detach().cpu()
 ctest_outputs = ctest_outputs.detach().cpu()
@@ -436,7 +632,7 @@ test_targets = test_targets.detach().cpu()
 # for the correct plot fo attention, we need to adapt to scaling issues
 size_scale = attmodel.num_channels / seq_length
 
-# plot outputs and attention maps
+# plot outputs
 for k in range(15):
     save_sequence_images(
         f"attention_attmodel_test_Y_{k:03.0f}.svg",
