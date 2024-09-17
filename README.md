@@ -73,4 +73,8 @@ This repo has a small utility prepared which can check if you software environme
 ``` bash
 python notebooks/00_intro2ml_envcheck.py
 ```
-or open the paired notebook `notebooks/00_intro2ml_envcheck.ipynb` and execute all cells.
+If you are running on SWAN and you receive the error relative to the missing package `mnist1d`, please run:
+``` bash
+python -m pip install --user mnist1d
+```
+or open the paired notebook `notebooks/00_intro2ml_envcheck.ipynb`, read the instructions and execute all cells.
