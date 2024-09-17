@@ -27,7 +27,10 @@
 # Exploring a reweighting task
 
 The following material is taken from the excellent lectures of Francois Fleuret (Univeristy of Geneva). Francois Fleuret introduces the self-attention mechanism in three parts: [first](https://fleuret.org/dlc/streaming/dlc-video-13-1-attention-memory-translation.mp4), [second](https://fleuret.org/dlc/streaming/dlc-video-13-2-attention-mechanisms.mp4) and [third](https://fleuret.org/dlc/streaming/dlc-video-13-3-transformers.mp4) - all of which are worthwhile watching. I have asked permission of Francois to reuse some of his material.
+"""
 
+# %% [markdown]
+r"""
 ## A regression task
 
 In the following, we again look at a regression task. The functions below produce a dataset which can be used to illustrate the use of the attention mechanism. The dataset exhibits 2 triangles and 2 boxes/rectangles on a 1D line. In this notebook, we focus on
@@ -49,7 +52,7 @@ drng = np.random.default_rng(43)  # set the RNG seed for reproducible runs
 # %%
 # create train and test set
 train_input, train_targets, train_tr, train_bx = generate_sequences(
-    15000, seq_length=64, rng=drng
+    12000, seq_length=64, rng=drng
 )
 test_input, test_targets, test_tr, test_bx = generate_sequences(
     1000, seq_length=64, rng=drng
@@ -100,13 +103,15 @@ torch.random.manual_seed(43)
 # %%
 # normalize the signal, zscale if required
 x_min, x_max = train_input.min(), train_input.max()
-x_ = (train_input - x_min) / (x_max - x_min)
+loc = x_min #np.mean(train_input)
+scale = x_max - x_min #np.std(train_input)
+x_ = (train_input - loc) / scale
 
 y_min, y_max = train_targets.min(), train_targets.max()
-y_ = (train_targets - y_min) / (y_max - y_min)
+y_ = (train_targets - loc) / scale
 
-x_test_ = (test_input - x_min) / (x_max - x_min)
-y_test_ = (test_targets - y_min) / (y_max - y_min)
+x_test_ = (test_input - loc) / scale
+y_test_ = (test_targets - loc) / scale
 
 
 # %%
@@ -144,21 +149,27 @@ class RegressionFCN(torch.nn.Module):
 
 
 # %%
-# prepare the data
+# prepare the dataset and loaders
+
 train_ds = torch.utils.data.StackDataset(x_, y_)
 test_ds = torch.utils.data.StackDataset(x_test_, y_test_)
 
-train_loader = torch.utils.data.DataLoader(train_ds, shuffle=True, batch_size=64)
-test_loader = torch.utils.data.DataLoader(test_ds, shuffle=False, batch_size=64)
+train_loader = torch.utils.data.DataLoader(train_ds, shuffle=True, batch_size=256)
+test_loader = torch.utils.data.DataLoader(test_ds, shuffle=False, batch_size=256)
+
+def nparams(model):
+    """ compute the number of parameters of this <model> """
+    return sum(p.numel() for p in model.parameters())
 
 # %%
 # test our model
 
-plainfcn = RegressionFCN(x_.shape[-2:])
+plainfcn = RegressionFCN(x_.shape[-2:], num_channels=32)
 print(plainfcn)
 first_x, first_y = next(iter(train_loader))
 output = plainfcn(first_x)
 assert output.shape == first_y.shape
+print(f"set up plain fcn with {nparams(plainfcn)} parameters")
 
 # %%
 # perform training
@@ -209,9 +220,9 @@ def train_regression(model, opt, crit, train_dataloader, test_dataloader, max_ep
     return results
 
 # %%
-optim = torch.optim.AdamW(plainfcn.parameters(), lr=5e-4)
+optim = torch.optim.AdamW(plainfcn.parameters(), lr=1e-3)
 crit  = torch.nn.MSELoss()
-max_epochs = 10
+max_epochs = 15
 fcnresults = train_regression(plainfcn, optim, crit, train_loader, test_loader, max_epochs,2)
 
 # %%
@@ -277,52 +288,69 @@ Attention and self-attention are very powerful transformations. In this section,
 
 class SelfAttention(torch.nn.Module):
     def __init__(
-        self, in_channels, out_channels, key_channels
+        self,
+        in_channels: int,
+        query_channels: int,
+        key_channels: int,
+        out_dimension: int = 0,
     ):
+        """
+
+        constructor to set up self-attention module
+
+        Parameters
+        ----------
+        in_channels :
+            depend on the data
+        query_channels :
+            equivalent to T
+        key_channels :
+            equivalent to T_prime
+        out_dimension :
+            equivalent to D_prime, not needed here
+        """
         super().__init__()
 
         # we want to establish queries Q, keys K and values V
         # instead of using Linear layers, we opt for Conv1D as they use less
         # parameters and hence are less memory intensive
-        self.conv_Q = torch.nn.Conv1d(in_channels,
-                                      key_channels,
-                                      kernel_size=1,
-                                      bias=False
-                                      )
-        self.conv_K = torch.nn.Conv1d(in_channels,
-                                      key_channels,
-                                      kernel_size=1,
-                                      bias=False
-                                      )
-        self.conv_V = torch.nn.Conv1d(in_channels,
-                                      out_channels,
-                                      kernel_size=1,
-                                      bias=False
-                                      )
+        self.conv_Q = torch.nn.Conv1d(
+            in_channels, query_channels, kernel_size=1, bias=False
+        )
+        self.conv_K = torch.nn.Conv1d(
+            in_channels, key_channels, kernel_size=1, bias=False
+        )
+        self.conv_V = torch.nn.Conv1d(
+            in_channels, key_channels, kernel_size=1, bias=False
+        )
 
     def forward(self, x):
+        # we receive a NxCxD tensor x
+
         # run the convolutions on our inputs
-        Q = self.conv_Q(x)
-        K = self.conv_K(x)
-        V = self.conv_V(x)
+        Q = self.conv_Q(x)  # produces a NxTxD tensor
+        K = self.conv_K(x)  # produces a NxT_primexD tensor
+        V = self.conv_V(x)  # produces a NxT_primexD tensor as D_prime = D
 
-        # TODO: perform a tensor transpose
-        #       you want to transpose the very last dimension with the second to last
-        K_t = torch.transpose(K, -1, -2)
+        K_t = torch.transpose(K, -1, -2)  # convert to NxDxT_prime
+        A_ = torch.matmul(Q, K_t)  # results in NxTxT_prime
+        A = torch.nn.functional.softmax(A_, dim=2)  # results in NxTxT_prime
 
-        # TODO: perform a matrix multiplication of Q*K_t
-        A_ = torch.matmul(Q,K_t)
-
-        # TODO: perform a row-wise softmax of A_
-        A = torch.nn.functional.softmax(A_,dim=-2)
-
-        # TODO: perform a matrix multiplication of A*V
-        y = torch.matmul(A,V)
+        y = torch.matmul(A, V)  # results in TxT_prime * T_primexD = TxD
 
         return y
 
+    def attention(self, x):
+        Q = self.conv_Q(x)
+        K = self.conv_K(x)
 
-# # %%
+        K_t = torch.transpose(K, -1, -2)  # convert to NxDxT_prime
+        A_ = torch.matmul(Q, K_t)  # results in NxTxT_prime
+
+        return torch.nn.functional.softmax(A_, dim=2)
+
+
+# %%
 class CustomAttn(torch.nn.Module):
 
     def __init__(self, inshape=x_test_.shape[-2:], num_channels=64, ksize=5):
@@ -339,10 +367,13 @@ class CustomAttn(torch.nn.Module):
                 torch.nn.ReLU()
         )
         self.layers.append(
-                SelfAttention(num_channels,num_channels,num_channels)
+                torch.nn.Conv1d(num_channels, num_channels, ksize,stride=1,padding=padding )
+            )
+        self.layers.append(
+                torch.nn.ReLU()
         )
         self.layers.append(
-            torch.nn.ReLU()
+                SelfAttention(num_channels,num_channels,num_channels)
         )
         self.layers.append(
             torch.nn.Conv1d(num_channels, num_channels, ksize,stride=1,padding=padding )
@@ -356,15 +387,16 @@ class CustomAttn(torch.nn.Module):
         return self.layers(x)
 
 
-attmodel = CustomAttn(x_test_.shape[1:])
+attmodel = CustomAttn(x_test_.shape[1:], num_channels=40)
 output = attmodel(first_x)
 assert output.shape == first_y.shape
 print(attmodel)
+print(f"set up custom attention model with {nparams(attmodel)} parameters")
 
 # %%
-attoptim = torch.optim.AdamW(plainfcn.parameters(), lr=1e-3)
+attoptim = torch.optim.AdamW(attmodel.parameters(), lr=1e-3)
 attcrit  = torch.nn.MSELoss()
-max_epochs = 10
+max_epochs = 15
 attresults = train_regression(attmodel, attoptim, attcrit, train_loader, test_loader, max_epochs,2)
 
 # chistory = cmodel.fit(
@@ -384,76 +416,93 @@ It was picked up again in 2017 by A. Vaswani et al in "Attention is all you need
 A nice visualizer to help you grasp the idea of attention can be found [here](https://poloclub.github.io/transformer-explainer/).
 """
 
-# # %%
-class CustomTorchAttn(torch.nn.Module):
+# %%
 
-    def __init__(self, inshape=x_test_.shape[-2:], num_channels=64, ksize=5):
+class FleuretAttentionLayer(torch.nn.Module):
+    def __init__(self, in_channels, out_channels, key_channels):
+        super().__init__()
+        self.conv_Q = torch.nn.Conv1d(in_channels, key_channels, kernel_size=1, bias=False)
+        self.conv_K = torch.nn.Conv1d(in_channels, key_channels, kernel_size=1, bias=False)
+        self.conv_V = torch.nn.Conv1d(in_channels, out_channels, kernel_size=1, bias=False)
+
+    def forward(self, x):
+        Q = self.conv_Q(x)
+        K = self.conv_K(x)
+        V = self.conv_V(x)
+        # this einsum does matmul(Q.T, K) before the softmax
+        A = torch.einsum("nct,ncs->nts", Q, K).softmax(2)
+        # this einsum does matmul(A,V.T).T
+        y = torch.einsum("nts,ncs->nct", A, V)
+        return y
+
+    def __repr__(self):
+        return (
+            self._get_name()
+            + "(in_channels={}, out_channels={}, key_channels={})".format(
+                self.conv_Q.in_channels,
+                self.conv_V.out_channels,
+                self.conv_K.out_channels,
+            )
+        )
+
+    def attention(self, x):
+        Q = self.conv_Q(x)
+        K = self.conv_K(x)
+        A = torch.einsum("nct,ncs->nts", Q, K).softmax(2)
+        return A
+
+
+class CustomFleuretAttn(torch.nn.Module):
+
+    def __init__(self, inshape=x_test_.shape[-2:], num_channels=16, ksize=5):
 
         super().__init__()
 
-        self.head_layers = torch.nn.Sequential()
+        self.layers = torch.nn.Sequential()
         num_inchannels = inshape[0]
         padding = ksize // 2
-        self.head_layers.append(
+        self.layers.append(
                 torch.nn.Conv1d(num_inchannels, num_channels, ksize,stride=1,padding=padding )
             )
-        self.head_layers.append(
+        self.layers.append(
                 torch.nn.ReLU()
         )
-        self.head_layers.append(
+        self.layers.append(
                 torch.nn.Conv1d(num_channels, num_channels, ksize,stride=1,padding=padding )
             )
-        self.head_layers.append(
+        self.layers.append(
                 torch.nn.ReLU()
         )
-        self.attn_layer = torch.nn.MultiheadAttention(num_channels,
-                                                      num_heads=1,
-                                                      kdim=num_channels,
-                                                      vdim=num_channels,
-                                                      batch_first=True)
-
-
-        self.tail_layers = torch.nn.Sequential()
-        self.tail_layers.append(
+        self.layers.append(
+                FleuretAttentionLayer(num_channels,num_channels,num_channels)
+        )
+        self.layers.append(
             torch.nn.Conv1d(num_channels, num_channels, ksize,stride=1,padding=padding )
         )
-        self.tail_layers.append(
-            torch.nn.ReLU()
-        )
-
-        self.tail_layers.append(
+        self.layers.append(
             torch.nn.Conv1d(num_channels, num_inchannels, 1,stride=1,padding=0 )
         )
 
     def forward(self, x):
 
-        Q_ = self.head_layers(x)
-        K_ = self.head_layers(x)
-        V_ = self.head_layers(x)
+        return self.layers(x)
 
-        V = V_.swapaxes(-1, -2)
-        K = K_.swapaxes(-1, -2)
-        Q = Q_.swapaxes(-1, -2)
 
-        embedded, _ = self.attn_layer(Q, K, V, need_weights=False)
-        value = self.tail_layers(embedded)
-
-        return value
-
-tattmodel = CustomTorchAttn(x_test_.shape[1:])
-output = tattmodel(first_x)
+fattmodel = CustomFleuretAttn(x_test_.shape[1:], num_channels=40)
+output = fattmodel(first_x)
 assert output.shape == first_y.shape
-print(tattmodel)
+print(fattmodel)
+print(f"set up fleuret attention model with {nparams(fattmodel)} parameters")
 
 # %%
-tattoptim = torch.optim.AdamW(plainfcn.parameters(), lr=1e-3)
-tattcrit  = torch.nn.MSELoss()
-max_epochs = 10
-attresults = train_regression(tattmodel, tattoptim, tattcrit, train_loader, test_loader, max_epochs,2)
+fattoptim = torch.optim.AdamW(fattmodel.parameters(), lr=1e-3)
+fattcrit  = torch.nn.MSELoss()
+max_epochs = 15
+attresults = train_regression(fattmodel, fattoptim, fattcrit, train_loader, test_loader, max_epochs,2)
 
 # %%
 f,ax = plot_history(attresults)
-f.savefig("attention_tattmodel_losses.svg")
+f.savefig("attention_fattmodel_losses.svg")
 
 # # We reuse the model idea from above
 # def create_attn(inshape=x.shape[-2:], channels=64, ksize=5):
