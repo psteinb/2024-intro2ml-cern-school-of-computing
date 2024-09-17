@@ -48,6 +48,25 @@ You should see this now:
 
 6. Please open `notebooks/00_intro2ml_envcheck.ipynb`. Read and run all cells!
 
+### Updating your project 
+
+If this repo changes, you may want to update your version of this repository on SWAN. To do this, you have to follow these 2 steps:
+
+1. Open a terminal in the SWAN webgui   
+<div style="display: block;margin-left: auto;margin-right: auto;width: 75%;"><img src="notebooks/img/swan-pull-00-terminal.png" alt="SWAN terminal"></div>  
+
+2. Navigate to your project space. According to the steps outlined earlier, this should be:
+``` shell
+cd SWAN_projects/2024-intro2ml-cern-school-of-computing/
+```
+
+3. perform a git pull
+``` shell
+git pull
+```
+This might look as much as:
+<div style="display: block;margin-left: auto;margin-right: auto;width: 75%;"><img src="notebooks/img/swan-pull-01-cdandpull.png" alt="SWAN terminal"></div>  
+
 ## Check your Software Stack
 
 This repo has a small utility prepared which can check if you software environment is ready. Either run:
