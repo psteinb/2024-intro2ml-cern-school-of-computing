@@ -13,17 +13,19 @@
 # ---
 
 # %% [markdown]
-# # Convolutional Neural Networks
-#
-# As we covered Multi-layer Perceptrons (MLP) in the last exercise. We want to explore using `pytorch` for ML more. For this, we also will start looking into another popular network architecture called convolutional neural networks.
-#
-# We start this exploration with a small motivating Gedankenexperiment.
-#
-# ## **Exercise 02.1** A MLP for my Phone
-#
-# Take out your phone. Check in the picture galery some of the last images you took. Try to find out how many pixels such an image has! You should arrive with a tuple that denominates height and width of such an image.
-#
-# Imagine you want to design an MLP network to categorize the pictures you took on your camera. We convert each image into a flat vector before feeding it into the network. We assume you like to use three hidden layers with 128 hidden neurons each. Then (for sake of the example) you want to predict a single category, i.e. your last layer has a size of 1. In this scenario, compute how many parameters such an MLP might have.
+r"""
+# Convolutional Neural Networks
+
+As we covered Multi-layer Perceptrons (MLP) in the last exercise. We want to explore using `pytorch` for ML more. For this, we also will start looking into another popular network architecture called convolutional neural networks.
+
+We start this exploration with a small motivating Gedankenexperiment.
+
+## **Exercise 02.1** A MLP for my Phone
+
+Take out your phone. Check in the picture galery some of the last images you took. Try to find out how many pixels such an image has! You should arrive with a tuple that denominates height and width of such an image.
+
+Imagine you want to design an MLP network to categorize the pictures you took on your camera. We convert each image into a flat vector before feeding it into the network. We assume you like to use three hidden layers with 128 hidden neurons each. Then (for sake of the example) you want to predict a single category, i.e. your last layer has a size of 1. In this scenario, compute how many parameters such an MLP might have.
+"""
 
 # %% [markdown] jupyter={"source_hidden": true}
 # ### 02.1 Solution
@@ -54,7 +56,7 @@ In the following code, we will rely a lot on [pseudorandom number generators](ht
 - shuffling the data during loading
 - initializing the weights of our network
 
-For didactical purposes, we hence fix the pseudorandomness to certain seed (or beginning of the random sequence). This will avoid confusion.
+For didactical purposes, we fix the pseudorandomness to certain seed values (i.e. we fix the beginning of the random sequence). This will avoid more confusion than necessary when comparing results.
 """
 
 # %%
