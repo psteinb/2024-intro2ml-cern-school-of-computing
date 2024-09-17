@@ -653,3 +653,12 @@ for k in range(15):
         seq_length=seq_length,
         seq_height_max=1.
     )
+
+# %% [markdown]
+r"""
+# Wrap-Up
+
+<div style="display: block;margin-left: auto;margin-right: auto;width: 75%;"><img src="https://ar5iv.labs.arxiv.org/html/1706.03762/assets/Figures/ModalNet-21.png" alt="Transformer Architecture"></div>
+
+The image above illustrates schematically how a transformer model was setup originally. Find the three instances of Multi-Head Attention. This is where attention is used. Note also, that we see two times self-attention (bottom) and one cross-attention where is $\mathbf{Q}$ and $\mathbf{K}$ is produced from an input and $\mathbf{Y}$ from another (top).
+"""
