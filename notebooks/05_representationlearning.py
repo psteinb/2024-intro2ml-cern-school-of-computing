@@ -258,6 +258,24 @@ ax[0].set_ylabel("avergage MSE Loss / a.u.")
 ax[0].set_yscale("log")
 ax[0].set_title("Loss")
 ax[0].legend()
+
+
+index = 0
+# perform prediction again
+last_x, last_y = test_data[index]
+last_x_prime = autoemodel(last_x.unsqueeze(0))
+
+# prepare tensors for plotting
+last_in = last_x.detach().squeeze().numpy()
+last_out = last_x_prime.detach().squeeze().numpy()
+
+ax[1].plot(last_in, color="b", label="test input")
+ax[1].plot(last_out, color="orange", label="test prediction")
+ax[1].set_xlabel("samples / a.u.")
+ax[1].set_ylabel("intensity / a.u.")
+ax[1].set_title(f"Conv-based Autoencoder, label = {last_y.detach().item()}")
+ax[1].legend()
+
 f.savefig("representationlearning-autoencoder-loss.svg")
 
 # %% [markdown]
