@@ -368,9 +368,19 @@ We further want $\mathbf{K}\in\mathbb{R}^{T'xD}$ where $T'$ is an arbitrary dime
 
 Last, we also want $\mathbf{V}\in\mathbb{R}^{T'xD'}$ where $T'$ is the same value as for $\mathbf{K}$ and $D'$ is for the sake of the example equal to $D$.
 
+Here is a sketch of what we are trying to achieve:
+
+<div style="display: block;margin-left: auto;margin-right: auto;width: 50%;"><img src="img/attention_sketch_qkv_cropped.png" alt="Establishing Q, K ,V"></div>
+"""
+
+
+# %% [markdown]
+r"""
 ** Exercise 03.2 **
 
-Write a `torch.nn.Module` which fulfills the requirements above. Feel free to start from this template below:
+Write a `torch.nn.Module` which fulfills the requirements above. The model should establish three convolutions in its constructor. Also, the `forward` function should contain the execution of these 3 convolutions to create $\mathbf{Q}, \mathbf{K}, \mathbf{V}$.
+
+Feel free to start from this template below:
 ``` python
 
 class SelfAttention(torch.nn.Module):
@@ -413,21 +423,30 @@ class SelfAttention(torch.nn.Module):
 r"""
 The actual attention mechanism is two lines of math, but it may take a while to digest it. We start from considering the fact, that we have three matrices now: $\mathbf{Q},\mathbf{K},\mathbf{V}$.
 
-We first need to calculate paired distances:
+We first need to calculate the attention matrix, sometimes also called the attention map. The attention map in our case computes a paired dot-product between all rows in $\mathbf{Q}$ and all rows in $\mathbf{K}$ (i.e. all columns in $K^{T}$. In other words, we compute all n-to-n distances of vectors in either matrix. Note, the normalisation by $\sqrt{D}$ is injected for numerical stability according to the authors.
 
-$$ \mathbf{A}' = \frac{QK^{T}}{\sqrt{D}} $$
-
-The attention map in our case computes a paired dot-product between all rows in $\mathbf{Q}$ and all rows in $\mathbf{K}$ (i.e. all columns in $K^{T}$. In other words, we compute all n-to-n distances of vectors in either matrix. Note, the normalisation by $\sqrt{D}$ is injected for numerical stability according to the authors.
+$$ \mathbf{A}' = \frac{Q K^{T}}{\sqrt{D}} $$
 
 To make these meaningful, the attention map is completed by a row-wise application of the softmax function:
 
 $$ \mathbf{A} = softmax_{row}(\mathbf{A}') = softmax_{row}(\frac{QK^{T}}{\sqrt{D}}) $$
 
+To illustrate the above, here is a sketch of what is going on:
+
+<div style="display: block;margin-left: auto;margin-right: auto;width: 40%;"><img src="img/attention_sketch_details_smaller.png" alt="Computing the Attention Map A"></div>
+"""
+
+# %% [markdown]
+r"""
 To finish up, we obtain the output of attention by weighting the attention map with $\mathbf{V}$.
 
 $$ \mathbf{Y} = \mathbf{A}\mathbf{V} $$
 
-The matrix $\mathbf{Y}$ is the output of our Attention layer. Note, this operation is called self-attention only if $\mathbf{V}$ were obtained from the same input as $\mathbf{Q}$ and $\mathbf{K}$.
+The matrix $\mathbf{Y}$ is the output of our Attention layer.
+
+Note, the operation described above is called *self-attention* because we obtained $\mathbf{V}$ from the same input as $\mathbf{Q}$ and $\mathbf{K}$. This stands in contrast to *cross-attention* where $\mathbf{V}$ is constructed from a different output than $\mathbf{Q}$ and $\mathbf{K}$. Here is an illustration to show, what is going on:
+
+<div style="display: block;margin-left: auto;margin-right: auto;width: 40%;"><img src="img/attention_sketch_schemes_cropped.png" alt="Self- and Cross-Attention"></div>
 """
 
 # %% [markdown]
@@ -658,7 +677,7 @@ for k in range(15):
 r"""
 # Wrap-Up
 
-<div style="display: block;margin-left: auto;margin-right: auto;width: 50%;"><img src="https://ar5iv.labs.arxiv.org/html/1706.03762/assets/Figures/ModalNet-21.png" alt="Transformer Architecture"></div>
+<div style="display: block;margin-left: auto;margin-right: auto;width: 30%;"><img src="https://ar5iv.labs.arxiv.org/html/1706.03762/assets/Figures/ModalNet-21.png" alt="Transformer Architecture"></div>
 
 The image above illustrates schematically how a transformer model was setup originally. Find the three instances of Multi-Head Attention. This is where attention is used. Note also, that we see two times self-attention (bottom) and one cross-attention where is $\mathbf{Q}$ and $\mathbf{K}$ is produced from an input and $\mathbf{Y}$ from another (top).
 """
