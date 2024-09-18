@@ -238,7 +238,7 @@ def train_autoencoder(
     return results
 
 
-print(f"Initialized autoencoder with f{count_params(autoemodel)} parameters")
+print(f"Initialized autoencoder with {count_params(autoemodel)} parameters")
 results = train_autoencoder(
     autoemodel,
     optimizer,
@@ -396,7 +396,11 @@ In practice, users are often interested in using the embeddings of either. The q
 
 At this point, we have to honor the fact, that we are dealing with a 10-dim space in either case. Thus, we have to choose a good visualisation method (or any other method to check) how similar, the embeddings actually are.
 
-For this, we will use the PCA available in `sklearn`.
+*Exercise 05.2*
+
+Perform the study above by fitting a 2-component PCA from `sklearn` on the embedding spaces of the test set! Fix the errors in the visible code snippet first. Then move on to visualize the first 2 components of the PCA.
+
+Bonus: If you feel like it, feel free to experiment with other techniques than PCA.
 """
 
 # %%
@@ -407,13 +411,26 @@ autoemodel.eval()
 alldata_loader = DataLoader(test_data, batch_size=len(test_data), shuffle=False)
 alltest_x, alltest_y = next(iter(alldata_loader))
 
+allembed_class = ...
+allembed_autoe = ...
+
+assert ...
+
+
+# %% jupyter={"source_hidden": true}
+classmodel.eval()
+autoemodel.eval()
+
+alldata_loader = DataLoader(test_data, batch_size=len(test_data), shuffle=False)
+alltest_x, alltest_y = next(iter(alldata_loader))
+
 allembed_class = classmodel(alltest_x)
 allembed_autoe = autoemodel.enc(alltest_x)
 
 assert allembed_autoe.shape == allembed_class.shape
-print(">>", allembed_autoe.shape, allembed_class.shape)
 
-# %%
+
+# %% jupyter={"source_hidden": true}
 import matplotlib.pyplot as plt
 
 from sklearn import datasets
@@ -428,7 +445,6 @@ X_autoe = pca.fit(allembed_autoe.detach().numpy()).transform(
 )
 
 assert X_class.shape == X_autoe.shape
-print(">>", X_class.shape)
 
 fig, ax = plt.subplots(2, 2, figsize=(10, 10))
 lw = 2
@@ -446,3 +462,7 @@ ax[1,1].scatter(X_autoe[..., 0], X_autoe[..., 1], c = alltest_y.detach().numpy()
 ax[1,1].set_title("PCA of autoencoder embeddings")
 
 fig.savefig("representationlearning-pca-comparison.svg")
+# %% [markdown]
+r"""
+From the above we learn, that the geometries which each of the two architectures populate in the embedding space tend to be quite different. Hence, the effect of this must be taken into account in practice. Moreover, we also see how clearly different either model differentiates the dataset.
+"""
