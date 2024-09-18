@@ -60,12 +60,16 @@ If this repo changes, you may want to update your version of this repository on 
 cd SWAN_projects/2024-intro2ml-cern-school-of-computing/
 ```
 
+*Note: if you altered the notebooks during the exercises, the following command might fail. Please git-stash your changes or move them out of the way by renaming and git-restoring them.*
+
 3. perform a git pull
 ``` shell
 git pull
 ```
 This might look as much as:
 <div style="display: block;margin-left: auto;margin-right: auto;width: 75%;"><img src="notebooks/img/swan-pull-01-cdandpull.png" alt="SWAN terminal"></div>  
+
+
 
 ## Check your Software Stack
 
