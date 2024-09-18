@@ -63,7 +63,7 @@ cleanX, cleany = clean["x"], clean["y"]
 
 # use iid noise only for the time being
 noisy_config = get_dataset_args()
-noisy_config.iid_noise_scale = 0.1
+noisy_config.iid_noise_scale = 0.05
 noisy_config.corr_noise_scale = 0
 noisy_config.seed = 40
 data = make_dataset(noisy_config)
@@ -123,19 +123,37 @@ class MyEncoder(torch.nn.Module):
         super().__init__()
         self.layers = torch.nn.Sequential()
 
+        self.layers.append(
+            torch.nn.Conv1d(
+                in_channels=1,
+                out_channels=nchannels,
+                kernel_size=3,
+                padding=1,
+                stride=1,
+            )
+        )
+
         for i in range(nlayers - 1):
-            inchannels = 1 if i == 0 else nchannels
             # convolve and shrink input width by 2x
             self.layers.append(
                 torch.nn.Conv1d(
-                    in_channels=inchannels,
+                    in_channels=nchannels,
                     out_channels=nchannels,
-                    kernel_size=5,
-                    padding=2,
-                    stride=2,
+                    kernel_size=3,
+                    padding=1,
+                    stride=1,
                 )
             )
             self.layers.append(torch.nn.ReLU())
+            self.layers.append(
+                torch.nn.Conv1d(
+                    in_channels=nchannels,
+                    out_channels=nchannels,
+                    kernel_size=3,
+                    padding=1,
+                    stride=2,
+                )
+            )
 
         # convolve and keep input width
         self.layers.append(
@@ -170,11 +188,9 @@ Xtest = Xt[:8, ...]
 
 latent_h = enc(Xtest)
 
-print(Xtest.shape, Xtest.dtype, "->", latent_h.shape, latent_h.dtype)
 assert (
     latent_h.shape[-1] < Xtest.shape[-1]
 ), f"{latent_h.shape[-1]} !< {Xtest.shape[-1]}"
-print(f"encoder is ready to train!")
 
 # %% [markdown]
 """
@@ -202,6 +218,15 @@ class MyDecoder(torch.nn.Module):
                 )
             )
             self.layers.append(torch.nn.ReLU())
+            self.layers.append(
+                torch.nn.Conv1d(
+                    in_channels=nchannels,
+                    out_channels=nchannels,
+                    kernel_size=3,
+                    padding=1,
+                    stride=1,
+                )
+            )
 
         # convolve and keep input width
         self.layers.append(
@@ -229,7 +254,6 @@ Xt_prime = dec(latent_h)
 assert (
     Xt_prime.squeeze(1).shape == Xtest.shape
 ), f"{Xt_prime.squeeze(1).shape} != {Xtest.shape}"
-print(f"decoder is ready to train!")
 
 # %% [markdown]
 """
@@ -262,8 +286,6 @@ We can test our autoencoder works as expected similar to what we did above.
 
 # %%
 model = MyAutoencoder()
-print(f"constructed autoencoder with {count_params(model)} parameters")
-
 Xt_prime = model(Xtest)
 
 assert (
@@ -358,19 +380,29 @@ Training the autoencoder works in the same line as training for regression from 
 from torch.utils.data import DataLoader
 from utils import MNIST1D
 
-training_data = MNIST1D(mnist1d_args=noisy_config)
-test_data = MNIST1D(mnist1d_args=noisy_config, train=False)
-clean_data = MNIST1D(mnist1d_args=clean_config, train=False)
+# noisy data
+training_noisy = MNIST1D(mnist1d_args=noisy_config, train=True)
+test_noisy = MNIST1D(mnist1d_args=noisy_config, train=False)
 
-nsamples = len(training_data) + len(test_data)
-assert nsamples == 4000, f"number of samples for MNIST1D is not 4000 but {nsamples}"
+# clean data
+training_clean = MNIST1D(mnist1d_args=clean_config, train=True)
+test_clean = MNIST1D(mnist1d_args=clean_config, train=False)
 
-train_dataloader = DataLoader(training_data, batch_size=64, shuffle=True)
-test_dataloader = DataLoader(test_data, batch_size=64, shuffle=False)
+# stacked as paired sequences
+training_data = torch.utils.data.StackDataset(training_noisy, training_clean)
+test_data = torch.utils.data.StackDataset(test_noisy, test_clean)
 
-model = MyAutoencoder()
+train_dataloaders  = DataLoader(training_data, batch_size=64, shuffle=True)
+test_dataloaders   = DataLoader(test_data, batch_size=64, shuffle=True)
+
+nsamples = len(training_noisy) + len(test_noisy)
+assert nsamples == 4_000, f"number of samples for MNIST1D is not 4_000 but {nsamples}"
+
+model = MyAutoencoder(nchannels=32)
+print(f"training conv autoencoder with {count_params(model)} parameters")
+
 learning_rate = 1e-3
-max_epochs = 30
+max_epochs = 20
 log_every = 5
 
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
@@ -389,12 +421,16 @@ def train_autoencoder(
 
     for epoch in range(max_epochs):
         # perform training for one epoch
-        for idx, (X, _) in enumerate(train_dataloader):
+        for idx, (noisy, clean) in enumerate(train_dataloader):
+            # we discard the labels by assigning them to _
+            noisy_x, _ = noisy
+            clean_x, _ = clean
+
             # forward pass
-            X_prime = model(X)
+            X_prime = model(noisy_x)
 
             # compute loss
-            loss = crit(X_prime, X)
+            loss = crit(X_prime, clean_x)
 
             # compute gradient
             loss.backward()
@@ -407,9 +443,13 @@ def train_autoencoder(
 
             train_loss[idx] = loss.item()
 
-        for idx, (X_test, _) in enumerate(test_dataloader):
-            X_prime_test = model(X_test)
-            loss_ = crit(X_prime_test, X_test)
+        for idx, (test_noisy, test_clean) in enumerate(test_dataloader):
+            # we discard the labels by assigning them to _
+            test_noisy_x, _ = noisy
+            test_clean_x, _ = clean
+
+            X_prime_test = model(test_noisy_x)
+            loss_ = crit(X_prime_test, test_clean_x)
             test_loss[idx] = loss_.item()
 
         results["train_losses"].append(train_loss.mean())
@@ -426,8 +466,8 @@ results = train_autoencoder(
     model,
     optimizer,
     criterion,
-    train_dataloader,
-    test_dataloader,
+    train_dataloaders,
+    test_dataloaders,
     max_epochs,
     log_every,
 )
@@ -444,15 +484,15 @@ ax[0].legend()
 
 index = 0
 # perform prediction again
-last_x, last_y = test_data[index]
+last_x, last_y = test_noisy[index]
 last_x_prime = model(last_x.unsqueeze(0))
 
 # prepare tensors for plotting
 last_in = last_x.detach().squeeze().numpy()
 last_out = last_x_prime.detach().squeeze().numpy()
 
-# obtain reference data
-clean_x, clean_y = clean_data[index]
+# obtain reference test data
+clean_x, clean_y = test_clean[index]
 clean_in = clean_x.detach().squeeze().numpy()
 
 ax[1].plot(last_in, color="b", label="test input")
@@ -482,6 +522,7 @@ If you try the last cell with different values for `index` you will also see tha
 Rewrite the MyAutoencoder class to use the encoder/decoder classes which employ `torch.nn.Linear` layers only. Rerun the training with them! Do you observe a difference in the reconstruction?
 """
 
+
 # %% jupyter={"source_hidden": true}
 # 04.2 Solution
 class MyLinearAutoencoder(torch.nn.Module):
@@ -502,16 +543,18 @@ class MyLinearAutoencoder(torch.nn.Module):
 
 
 # setup model and optimizer
-lmodel = MyLinearAutoencoder()
-loptimizer = optimizer = torch.optim.AdamW(lmodel.parameters(), lr=learning_rate)
+lmodel = MyLinearAutoencoder(nchannels=32)
+print(f"training dense autoencoder with {count_params(lmodel)} parameters")
+
+loptimizer = torch.optim.AdamW(lmodel.parameters(), lr=learning_rate)
 
 # run training
 lresults = train_autoencoder(
     lmodel,
     loptimizer,
     criterion,
-    train_dataloader,
-    test_dataloader,
+    train_dataloaders,
+    test_dataloaders,
     max_epochs,
     log_every,
 )
