@@ -280,7 +280,7 @@ We have so far built up our autoencoder with convolutional operations only. The 
 
 
 # %% jupyter={"source_hidden": true}
-# 03.1 Solution
+# 04.1 Solution
 class MyLinearEncoder(torch.nn.Module):
     def __init__(self, nlayers: int = 3, nchannels=16, inputdim=40):
         super().__init__()
@@ -376,10 +376,12 @@ log_every = 5
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 criterion = torch.nn.MSELoss()  # our loss function
 
+
 # %%
 # write the training loop
-def train_autoencoder(model, opt, crit, train_dataloader, test_dataloader, max_epochs, log_every=5):
-
+def train_autoencoder(
+    model, opt, crit, train_dataloader, test_dataloader, max_epochs, log_every=5
+):
     results = {"train_losses": [], "test_losses": []}
     ntrainsteps = len(train_dataloader)
     nteststeps = len(test_dataloader)
@@ -405,7 +407,7 @@ def train_autoencoder(model, opt, crit, train_dataloader, test_dataloader, max_e
 
             train_loss[idx] = loss.item()
 
-        for idx, (X_test, y_test) in enumerate(test_dataloader):
+        for idx, (X_test, _) in enumerate(test_dataloader):
             X_prime_test = model(X_test)
             loss_ = crit(X_prime_test, X_test)
             test_loss[idx] = loss_.item()
@@ -420,13 +422,15 @@ def train_autoencoder(model, opt, crit, train_dataloader, test_dataloader, max_e
     return results
 
 
-results = train_autoencoder(model,
-                            optimizer,
-                            criterion,
-                            train_dataloader,
-                            test_dataloader,
-                            max_epochs,
-                            log_every)
+results = train_autoencoder(
+    model,
+    optimizer,
+    criterion,
+    train_dataloader,
+    test_dataloader,
+    max_epochs,
+    log_every,
+)
 # %%
 f, ax = plt.subplots(1, 2, figsize=(10, 4))
 
@@ -479,8 +483,7 @@ Rewrite the MyAutoencoder class to use the encoder/decoder classes which employ 
 """
 
 # %% jupyter={"source_hidden": true}
-# 03.2 Solution
-
+# 04.2 Solution
 class MyLinearAutoencoder(torch.nn.Module):
     def __init__(self, nlayers: int = 3, nchannels=16):
         super().__init__()
@@ -497,18 +500,21 @@ class MyLinearAutoencoder(torch.nn.Module):
 
         return x_prime
 
+
 # setup model and optimizer
 lmodel = MyLinearAutoencoder()
 loptimizer = optimizer = torch.optim.AdamW(lmodel.parameters(), lr=learning_rate)
 
 # run training
-lresults = train_autoencoder(lmodel,
-                             loptimizer,
-                             criterion,
-                             train_dataloader,
-                             test_dataloader,
-                             max_epochs,
-                            log_every)
+lresults = train_autoencoder(
+    lmodel,
+    loptimizer,
+    criterion,
+    train_dataloader,
+    test_dataloader,
+    max_epochs,
+    log_every,
+)
 
 # viz the results
 f, ax = plt.subplots(1, 2, figsize=(10, 4))
@@ -546,81 +552,4 @@ To draw more conclusions, here are some things to try while retaining the number
 - use different activation functions
 - add more layers
 - optimize the hyperparameters for training (learning_rate, number of epochs, ...)
-"""
-
-# %% [markdown]
-"""
-# BONUS: Why do we need VAEs then?
-
-If autoencoders work so well, why would you then expand and alter this technology to create variational autoencoders? The answer is somewhat straight forward and complicated at the same time: because AEs do not generate data well. Let's explore this!
-"""
-
-# %%
-clean_test = MNIST1D(mnist1d_args=clean_config, train=False)
-clean_train = MNIST1D(mnist1d_args=clean_config, train=True)
-
-train_cleanloader = DataLoader(clean_train, batch_size=64, shuffle=True)
-test_cleanloader = DataLoader(clean_test, batch_size=len(clean_test), shuffle=False)
-
-learning_rate = 1e-3
-max_epochs = 10
-log_every = 2
-cmodel = MyAutoencoder()
-coptimizer = optimizer = torch.optim.AdamW(cmodel.parameters(), lr=learning_rate)
-
-lresults = train_autoencoder(cmodel,
-                             coptimizer,
-                             criterion,
-                             clean_train,
-                             clean_test,
-                             max_epochs,
-                            log_every)
-
-# let's look at the latent space of the autoencoder
-import seaborn as sns
-import pandas as pd
-
-test_x, _ = next(iter(test_cleanloader))
-latents = cmodel.enc(test_x)
-latents_ = latents.detach().squeeze().numpy()
-latentsdf = pd.DataFrame(data=latents_,
-                         index=torch.arange(test_x.shape[0]).numpy())
-grid = sns.pairplot(data=latentsdf, corner=True)
-grid.savefig("mnist1d_clean_conv_autoencoder_latents.svg")
-
-mins, means, stds, maxs = np.min( latents_, axis=0), np.mean(latents_, axis=0), np.std( latents_, axis=0), np.max(latents_, axis=0)
-
-print("min values" , mins)
-print("mean values", means)
-print("std values" , stds )
-print("max values" , maxs )
-# %% [markdown]
-"""
-The plot above tells us, that the shape of the distributions in each latent space dimension is somewhat gaussian. You can verify this, but there is still no guarantee that with more data, these distributions might be non-normal.
-
-So let's turn the table around. Let's sample from a multi-variate normal distribution and only generate samples using the decoder.
-"""
-
-# %%
-cov = stds.T*np.eye(stds.shape[0])
-generated_ = np.random.multivariate_normal(means, cov, 16)
-generated = torch.from_numpy(generated_).float()
-assert generated.shape == (16, 10)
-
-X_new = cmodel.dec(generated)
-
-f, ax = plt.subplots(4, 4, figsize=(12, 12), sharex=True, sharey=True)
-cnt = 0
-for r in range(4):
-    for c in range(4):
-        ax[r, c].plot(generated[cnt, ...].detach().numpy())
-        cnt += 1
-f.savefig("mnist1d_clean_conv_autoencoder_generated.svg")
-# %% [markdown]
-"""
-Congratulations! You have just trained your first generative AI! But look at what you created, the generated examples look vaguely like the original. This can have 2 main reasons:
-- your decoder is not expressive enough (try optimising it, increase the size of the training set, ...)
-- the random samples we picked landed in regions of the latent space which the autoencoder did not populate (in other words in holes)
-
-For the latter reason, people started looking into variational autoencoders in order to create latent space populations which are much more smooth and do not contain any holes.
 """
