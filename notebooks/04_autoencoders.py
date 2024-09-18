@@ -37,7 +37,7 @@ In summary, autoencoders are a powerful tool for scientific data analysis due to
 """
 ## An autoencoder for denoising
 
-In the next cells, we will face a situation in which the quality of the data is rather poor. There is a lot of noise added to the dataset which is hard to handle. We will set up an autoencoder to tackle the task of **denoising**.
+In the next cells, we will face a situation in which the quality of the data is rather poor. There is a lot of noise added to the dataset which is hard to handle. We will set up an autoencoder to tackle the task of **denoising**, i.e. to remove stochastic fluctuations from the input as best as possible.
 
 First, let's prepare a dataset, which is contains a signal we are interested in and the noise.
 """
