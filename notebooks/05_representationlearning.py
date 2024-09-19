@@ -60,8 +60,6 @@ f.suptitle("MNIST1D examples")
 f.savefig("mnist1d_cleanonly_first10.svg")
 
 # %%
-
-
 class MyEncoder(torch.nn.Module):
     def __init__(self, nlayers: int = 3, nchannels=16):
         super().__init__()
@@ -172,6 +170,7 @@ Training the autoencoder works in the same line as training for regression from 
 """
 
 # %%
+# create dataset and loaders
 from torch.utils.data import DataLoader
 from utils import MNIST1D
 
@@ -184,6 +183,8 @@ assert nsamples == 4000, f"number of samples for MNIST1D is not 4000 but {nsampl
 train_dataloader = DataLoader(training_data, batch_size=64, shuffle=True)
 test_dataloader = DataLoader(test_data, batch_size=64, shuffle=False)
 
+# %%
+# setup the model
 autoemodel = MyAutoencoder()
 learning_rate = 1e-3
 max_epochs = 30
@@ -237,7 +238,8 @@ def train_autoencoder(
             )
     return results
 
-
+# %%
+# run the training
 print(f"Initialized autoencoder with {count_params(autoemodel)} parameters")
 results = train_autoencoder(
     autoemodel,
@@ -249,6 +251,7 @@ results = train_autoencoder(
     log_every,
 )
 # %%
+# visualize the training progress
 f, ax = plt.subplots(1, 2, figsize=(10, 4))
 
 ax[0].plot(results["train_losses"], color="b", label="train")
@@ -259,7 +262,7 @@ ax[0].set_yscale("log")
 ax[0].set_title("Loss")
 ax[0].legend()
 
-
+# choose an index into the test set of your liking
 index = 0
 # perform prediction again
 last_x, last_y = test_data[index]
@@ -289,7 +292,6 @@ Effective Machine Learning is often about finding a good and flexible model that
 Similar to [MNIST](https://yann.lecun.com/exdb/mnist/), `mnist1d` can be used for the task of classification. In other words, given an input sequence, we only want to predict the class label `[0,1,...,9]` that the image belongs to. Classification has been one of the driving forces behind progress in machine learning since [ImageNet 2012]() - for better or worse. In science, classification is used rarely.
 """
 
-
 # %%
 # taken from https://github.com/greydanus/mnist1d/blob/dc46206f1e1ad7249c96e3042efca0955a6b5d35/notebooks/models.py#L36C1-L54C65
 class ConvBase(torch.nn.Module):
@@ -310,6 +312,31 @@ class ConvBase(torch.nn.Module):
         h3 = h3.view(h3.shape[0], -1)  # flatten the conv features
         return self.linear(h3)  # a linear classifier goes on top
 
+# %% [markdown]
+r"""
+**Exercise 05.1**
+
+We looked at classification in exercise 02. Pick up the notebook from there, compare the code of the `MyCNN` class with `ConvBase` above. What differences do you spot?
+"""
+
+# %% [markdown] jupyter={"source_hidden": true}
+r"""
+**Solution 05.1**
+
+Convolution setup:
+- MyCNN: uses convolutions with kernel sizes 5,5,3
+- ConvBase: uses convolutions with kernel sizes 5,3,3
+
+Tensor Views:
+- MyCNN: uses a flatten layer
+- ConvBase: uses a reshaped view of h3, views are powerful concepts in pytorch with which you can reshape a tensor without touching its memory
+
+Outputs of the forward pass:
+- MyCNN: uses a Softmax after the linear layer
+- ConvBase: uses only a linear layer as the output
+
+Note, that for the latter aspect, each model returns quite content for the tensors. MyCNN does normalize the logits according to the Softmax, whereas ConvBase does not! It's fun to take away, that albeit Softmax imposes a probabilistic view on the model output, training can live without it sometimes.
+"""
 
 # %%
 from sklearn.metrics import accuracy_score as accuracy
@@ -380,6 +407,7 @@ print(f"Initialized ConvBase model with {count_params(classmodel)} parameters")
 classopt = torch.optim.AdamW(classmodel.parameters(), lr=1e-3)
 classcrit = torch.nn.CrossEntropyLoss()
 
+# train the classifier
 classifier_results = train_classifier(
     classmodel, classopt, classcrit, train_dataloader, test_dataloader, max_epochs=30
 )
@@ -412,13 +440,18 @@ We have trained two networks:
 
 In practice, users are often interested in using the embeddings of either. The question, we want to answer now: are the embeddings the same?
 
-At this point, we have to honor the fact, that we are dealing with a 10-dim space in either case. Thus, we have to choose a good visualisation method (or any other method to check) how similar, the embeddings actually are.
+At this point, we have to honor the fact, that we are dealing with a 10-dim space in either case:
+- the latent space of our autoencoder has dim=10
+- the output of our classifier (also called logits) is also dim=10
+
+To take a more closer look, we need to explore (and compare) samples from a 10-dimensional space. Quite tricky with a 2D laptop screen.
+Thus, we have to choose a good visualisation method (or any other method to check) how similar, the embeddings actually are.
 
 *Exercise 05.2*
 
 Perform the study above by fitting a 2-component PCA from `sklearn` on the embedding spaces of the test set! Fix the errors in the visible code snippet first. Then move on to visualize the first 2 components of the PCA.
 
-Bonus: If you feel like it, feel free to experiment with other techniques than PCA.
+Bonus: If you feel like it, feel free to experiment with other techniques than PCA like [tSNE](https://scikit-learn.org/stable/modules/generated/sklearn.manifold.TSNE.html).
 """
 
 # %%
