@@ -5,7 +5,7 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.16.3
+#       jupytext_version: 1.16.4
 #   kernelspec:
 #     argv:
 #     - python
@@ -114,15 +114,16 @@ torch.random.manual_seed(43)
 # %%
 # normalize the signal, zscale normalisation commented out for experimentation
 x_min, x_max = train_input.min(), train_input.max()
-loc = x_min  # np.mean(train_input)
-scale = x_max - x_min  # np.std(train_input)
-x_ = (train_input - loc) / scale
+loc_inputs = x_min  # np.mean(train_input)
+scale_inputs = x_max - x_min  # np.std(train_input)
+x_ = (train_input - loc_inputs) / scale_inputs
 
 y_min, y_max = train_targets.min(), train_targets.max()
-y_ = (train_targets - loc) / scale
+loc_outputs, scale_outputs = y_min, y_max - y_min
+y_ = (train_targets - loc_outputs) / scale_outputs
 
-x_test_ = (test_input - loc) / scale
-y_test_ = (test_targets - loc) / scale
+x_test_ = (test_input - loc_inputs) / scale_inputs
+y_test_ = (test_targets - loc_outputs) / scale_outputs
 
 
 # %%
@@ -521,6 +522,7 @@ class SelfAttention(torch.nn.Module):
         query_channels: int,
         key_channels: int,
         out_dimension: int = 0,
+        conv_kernel_size: int = 1
     ):
         """
 
@@ -543,13 +545,13 @@ class SelfAttention(torch.nn.Module):
         # instead of using Linear layers, we opt for Conv1D as they use less
         # parameters and hence are less memory intensive
         self.conv_Q = torch.nn.Conv1d(
-            in_channels, query_channels, kernel_size=1, bias=False
+            in_channels, query_channels, kernel_size=conv_kernel_size, bias=False
         )
         self.conv_K = torch.nn.Conv1d(
-            in_channels, key_channels, kernel_size=1, bias=False
+            in_channels, key_channels, kernel_size=conv_kernel_size, bias=False
         )
         self.conv_V = torch.nn.Conv1d(
-            in_channels, key_channels, kernel_size=1, bias=False
+            in_channels, key_channels, kernel_size=conv_kernel_size, bias=False
         )
 
     def forward(self, x):
@@ -571,7 +573,7 @@ class SelfAttention(torch.nn.Module):
 
 
 # %%
-# now we want to include that into a model
+# now we want to include the SelfAttention block into a model
 class CustomAttn(torch.nn.Module):
 
     def __init__(self, inshape=x_test_.shape[-2:], num_channels=64, ksize=5):
@@ -595,7 +597,7 @@ class CustomAttn(torch.nn.Module):
                 torch.nn.ReLU()
         )
         self.layers.append(
-                SelfAttention(num_channels,num_channels,num_channels)
+                SelfAttention(num_channels,num_channels,num_channels,conv_kernel_size=1)
         )
         self.layers.append(
             torch.nn.Conv1d(num_channels, num_channels, ksize,stride=1,padding=padding )
@@ -609,7 +611,7 @@ class CustomAttn(torch.nn.Module):
         return self.layers(x)
 
 # test our model
-attmodel = CustomAttn(x_test_.shape[1:], num_channels=64)
+attmodel = CustomAttn(x_test_.shape[1:], num_channels=32)
 output = attmodel(first_x)
 assert output.shape == first_y.shape
 print(attmodel)
@@ -619,7 +621,7 @@ print(f"set up custom attention model with {nparams(attmodel)} parameters")
 # train the model
 attoptim = torch.optim.AdamW(attmodel.parameters(), lr=1e-3)
 attcrit  = torch.nn.MSELoss()
-max_epochs = 15
+max_epochs = 25
 attresults = train_regression(attmodel, attoptim, attcrit, train_loader, test_loader, max_epochs,2)
 
 # %%
@@ -637,7 +639,6 @@ Next, we want to visualize some output sequences and check if the model has trul
 
 # %%
 # obtain predictions
-
 test_input, test_targets = torch.from_numpy(x_test_[:32,...]), torch.from_numpy(y_test_[:32,...])
 test_outputs = attmodel(test_input)
 ctest_outputs = plainfcn(test_input)
@@ -648,6 +649,72 @@ test_outputs = test_outputs.detach().cpu()
 ctest_outputs = ctest_outputs.detach().cpu()
 test_targets = test_targets.detach().cpu()
 
+
+# %%
+# let's visualise some example predictions
+xaxis = np.arange(0, x_test_.shape[-1], 1)
+first5_x_train, first5_y_train = next(iter(train_loader))
+apred5_train = attmodel(first5_x_train[:5,...]) # predict only first 5 samples
+cpred5_train = plainfcn(first5_x_train[:5,...]) # predict only first 5 samples
+f, ax = plt.subplots(2,5, figsize=(10,6), sharex=True, sharey=True)
+
+for col in range(5):
+    labl = first5_y_train[col:col+1].detach().squeeze().numpy()
+    apred = apred5_train[col:col+1].detach().squeeze().numpy()
+    cpred = cpred5_train[col:col+1].detach().squeeze().numpy()
+    ax[0,col].plot(labl, color="green", label="label")
+    ax[0,col].plot(apred, color="red", label="attnt pred")
+    ax[0,col].set_title(f"train #{col}")
+    ax[0,col].set_ylabel("intensity / a.u.")
+    # ax[0,col].set_xlabel("sample / a.u.")
+
+    ax[1,col].plot(labl, color="green", label="label")
+    ax[1,col].plot(cpred, color="blue", label="conv pred")
+    #ax[1,col].set_title(f"train #{col}")
+    ax[1,col].set_ylabel("intensity / a.u.")
+    ax[1,col].set_xlabel("sample / a.u.")
+
+    if col == 4:
+        ax[0, col].legend(loc="best")
+        ax[1, col].legend(loc="best")
+
+
+
+f.savefig("attention_plainfcn_pred5_train.svg")
+
+
+# %%
+first5_x_test, first5_y_test = next(iter(test_loader))
+apred5_test = attmodel(first5_x_test[:5,...]) # predict only first 5 samples
+cpred5_test = plainfcn(first5_x_test[:5,...]) # predict only first 5 samples
+f, ax = plt.subplots(2,5, figsize=(10,6), sharex=True, sharey=True)
+
+for col in range(5):
+    labl = first5_y_test[col:col+1].detach().squeeze().numpy()
+    apred = apred5_test[col:col+1].detach().squeeze().numpy()
+    cpred = cpred5_test[col:col+1].detach().squeeze().numpy()
+    ax[0,col].plot(labl, color="green", label="label")
+    ax[0,col].plot(apred, color="red", label="attnt pred")
+    ax[0,col].set_title(f"test #{col}")
+    ax[0,col].set_ylabel("intensity / a.u.")
+    # ax[0,col].set_xlabel("sample / a.u.")
+
+    ax[1,col].plot(labl, color="green", label="label")
+    ax[1,col].plot(cpred, color="blue", label="conv pred")
+    #ax[1,col].set_title(f"test #{col}")
+    ax[1,col].set_ylabel("intensity / a.u.")
+    ax[1,col].set_xlabel("sample / a.u.")
+
+    if col == 4:
+        ax[0, col].legend(loc="best")
+        ax[1, col].legend(loc="best")
+
+
+
+f.savefig("attention_plainfcn_pred5_test.svg")
+
+
+# %%
 # for the correct plot fo attention, we need to adapt to scaling issues
 size_scale = attmodel.num_channels / seq_length
 
